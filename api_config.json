@@ -1,0 +1,11 @@
+{
+  "client_id": "3Z60PxcD3tCSgPh40RF2TG",
+  "client_secret": "$2a$04$FQLDtkTW9/4r8yCVjaBAU.",
+  "gemini_api_key": "AQ.Ab8RN6JoEIhfY4-15i-P-kd3CEjKSvl-luazjKR8NhbE_m_jXw",
+  "default_category_id": "50003459",
+  "shipping_address_id": "107499285",
+  "return_address_id": "107499286",
+  "as_tel": "010-2208-7194",
+  "as_name": "대한종합상사",
+  "image_dir": "C:\\Users\\kkm19\\Desktop\\스토어업로드\\스마트스토어 자동 업로드\\smartstore_api_uploader_v35_detail_contact_email\\images"
+}

@@ -1,0 +1,8 @@
+streamlit
+pandas
+openpyxl
+requests
+bcrypt
+pybase64
+google-generativeai
+playwright
