@@ -153,6 +153,7 @@ with tab1:
     c1, c2 = st.columns(2)
     use_best = c1.checkbox("BEST 상품 수집", value=True)
     use_review = c2.checkbox("리뷰 많은순 + 리뷰 있는 상품만 수집", value=True)
+    use_individual = st.checkbox("🎯 개별 상품 URL 직접 수집 (입력한 주소가 스토어가 아닌 특정 상품 페이지일 경우)", value=False)
     
     st.markdown("---")
     st.markdown("🔑 **네이버 자동 로그인 (선택)** - 수집 시 로그인 화면이 뜨면 자동으로 입력합니다.")
@@ -196,7 +197,7 @@ with tab1:
                 
             with st.spinner("상품 정보를 수집하고 있습니다. 완료될 때까지 기다려주세요..."):
                 success, msg, df, fail_list = scraper.run_collection(
-                    urls, use_best, use_review, headless, update_progress, naver_id, naver_pw
+                    urls, use_best, use_review, use_individual, headless, update_progress, naver_id, naver_pw
                 )
                 
             if success:
@@ -480,6 +481,8 @@ with tab2:
                         df_result['이미지_검색'] = df_result.apply(
                             lambda x: f"https://www.google.com/search?tbm=isch&q={urllib.parse.quote(str(x['추출_브랜드']) + ' ' + str(x['추출_모델명']))}", axis=1
                         )
+                        df_result['이미지_확보'] = False
+
                         
                         def check_registration(model_name):
                             clean_model = str(model_name).strip().lower()
@@ -600,11 +603,13 @@ with tab3:
             default_cols = [c for c in df_result.columns if c != "선택"]
             
             if not saved_col_order:
-                # 초기 기본값 설정: '이미지_검색'을 '추출_모델명' 바로 뒤로 위치
-                if "추출_모델명" in default_cols and "이미지_검색" in default_cols:
-                    default_cols.remove("이미지_검색")
+                # 초기 기본값 설정: '이미지_검색', '이미지_확보'를 '추출_모델명' 바로 뒤로 위치
+                if "추출_모델명" in default_cols:
+                    if "이미지_검색" in default_cols: default_cols.remove("이미지_검색")
+                    if "이미지_확보" in default_cols: default_cols.remove("이미지_확보")
                     idx = default_cols.index("추출_모델명")
-                    default_cols.insert(idx + 1, "이미지_검색")
+                    if "이미지_검색" in df_result.columns: default_cols.insert(idx + 1, "이미지_검색")
+                    if "이미지_확보" in df_result.columns: default_cols.insert(idx + 2, "이미지_확보")
                 saved_col_order = default_cols
             else:
                 # 삭제된 열 제거 및 새로운 열을 맨 뒤에 추가
@@ -663,6 +668,10 @@ with tab3:
                         "이미지_검색": st.column_config.LinkColumn(
                             "구글 이미지 검색",
                             display_text="🔍 구글에서 찾기"
+                        ),
+                        "이미지_확보": st.column_config.CheckboxColumn(
+                            "이미지 확보", 
+                            help="이미지를 찾았으면 체크하세요"
                         )
                     }
                 )

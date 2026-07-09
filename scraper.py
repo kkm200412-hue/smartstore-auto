@@ -150,11 +150,43 @@ def wait_for_login_if_needed(page, naver_id="", naver_pw=""):
         except:
             time.sleep(5)
 
-def run_collection(urls, use_best, use_review, headless=True, progress_callback=None, naver_id="", naver_pw=""):
+def collect_individual_product(page, url):
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        time.sleep(3)
+        store = get_store_name(url)
+        title = page.title()
+        name = title.split(" : ")[0].strip() if " : " in title else title
+        
+        price = 0
+        lines = get_lines(page)
+        for line in lines[:50]:
+            if "원" in line and re.search(r"[\d,]+", line):
+                price_str = re.search(r"[\d,]+", line).group()
+                try:
+                    price = int(price_str.replace(",", ""))
+                    if price > 0:
+                        break
+                except: pass
+                
+        review_count = parse_review_count("\n".join(lines[:100]))
+        
+        return [{
+            "수집방식": "개별URL",
+            "스토어": store,
+            "상품명": name,
+            "가격": price if price > 0 else "가격 확인 불가",
+            "리뷰수": review_count,
+            "원본URL": url
+        }]
+    except Exception as e:
+        return []
+
+def run_collection(urls, use_best, use_review, use_individual=False, headless=True, progress_callback=None, naver_id="", naver_pw=""):
     urls = [normalize_first_page(u.strip()) for u in urls if u.strip()]
     if not urls:
         return False, "URL이 없습니다.", None, []
-    if not use_best and not use_review:
+    if not use_best and not use_review and not use_individual:
         return False, "수집 방식을 하나 이상 선택해주세요.", None, []
     
     all_results = []
@@ -186,19 +218,23 @@ def run_collection(urls, use_best, use_review, headless=True, progress_callback=
                     
                 before = len(all_results)
                 try:
-                    if use_best:
-                        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                        wait_for_login_if_needed(page, naver_id, naver_pw)
-                        time.sleep(5)
-                        scroll_page(page)
-                        all_results.extend(collect_best_from_text(page, url))
-                    if use_review:
-                        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                        wait_for_login_if_needed(page, naver_id, naver_pw)
-                        time.sleep(5)
-                        click_review_sort(page)
-                        scroll_page(page)
-                        all_results.extend(collect_review_from_text(page, url))
+                    if use_individual and ("/products/" in url or "/product/" in url):
+                        all_results.extend(collect_individual_product(page, url))
+                    else:
+                        if use_best:
+                            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                            wait_for_login_if_needed(page, naver_id, naver_pw)
+                            time.sleep(5)
+                            scroll_page(page)
+                            all_results.extend(collect_best_from_text(page, url))
+                        if use_review:
+                            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                            wait_for_login_if_needed(page, naver_id, naver_pw)
+                            time.sleep(5)
+                            click_review_sort(page)
+                            scroll_page(page)
+                            all_results.extend(collect_review_from_text(page, url))
+                            
                     if len(all_results) == before:
                         fail_list.append(store)
                 except Exception as e:
