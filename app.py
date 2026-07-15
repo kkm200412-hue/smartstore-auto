@@ -153,7 +153,6 @@ with tab1:
     c1, c2 = st.columns(2)
     use_best = c1.checkbox("BEST 상품 수집", value=True)
     use_review = c2.checkbox("리뷰 많은순 + 리뷰 있는 상품만 수집", value=True)
-    use_individual = st.checkbox("🎯 개별 상품 URL 직접 수집 (입력한 주소가 스토어가 아닌 특정 상품 페이지일 경우)", value=False)
     
     st.markdown("---")
     st.markdown("🔑 **네이버 자동 로그인 (선택)** - 수집 시 로그인 화면이 뜨면 자동으로 입력합니다.")
@@ -182,22 +181,30 @@ with tab1:
             except:
                 pass
                 
-        urls = url_input.splitlines()
+        import re
+        raw_urls = re.split(r'[\n\s,]+', url_input)
+        urls = [u.strip() for u in raw_urls if u.strip().startswith('http')]
+        has_individual = any("/product" in u for u in urls)
+        
         if not urls or not any(u.strip() for u in urls):
             st.warning("URL을 입력해주세요.")
-        elif not use_best and not use_review:
-            st.warning("수집 방식을 하나 이상 선택해주세요.")
+        elif not use_best and not use_review and not has_individual:
+            st.warning("스토어 URL인 경우 수집 방식을 하나 이상 선택해주세요.")
         else:
             progress_bar = st.progress(0)
             status_text = st.empty()
+            realtime_df_placeholder = st.empty()
             
-            def update_progress(idx, total, store_name):
+            def update_progress(idx, total, store_name, current_results=None):
                 progress_bar.progress(idx / total)
                 status_text.text(f"{idx}/{total} 수집 중: {store_name}")
+                if current_results:
+                    # 실시간으로 수집된 데이터를 보여줍니다
+                    realtime_df_placeholder.dataframe(pd.DataFrame(current_results), use_container_width=True)
                 
             with st.spinner("상품 정보를 수집하고 있습니다. 완료될 때까지 기다려주세요..."):
                 success, msg, df, fail_list = scraper.run_collection(
-                    urls, use_best, use_review, use_individual, headless, update_progress, naver_id, naver_pw
+                    urls, use_best, use_review, headless, update_progress, naver_id, naver_pw
                 )
                 
             if success:
@@ -371,7 +378,7 @@ with tab2:
                                 model = genai.GenerativeModel('gemini-2.5-flash')
                                 
                                 product_names = df_result[col_name_new].astype(str).tolist()
-                                brand_list, model_list, item_list, purpose_list = [], [], [], []
+                                brand_list, model_list, item_list, purpose_list, seo_name_list = [], [], [], [], []
                                 batch_size = 40
                                 progress_bar = st.progress(0)
                                 status_text = st.empty()
@@ -379,8 +386,8 @@ with tab2:
                                 for i in range(0, len(product_names), batch_size):
                                     batch = product_names[i:i+batch_size]
                                     status_text.text(f"Gemini AI가 상품명을 분석 중입니다... ({min(i+batch_size, len(product_names))}/{len(product_names)} 개 완료)")
-                                    prompt = "다음은 공구/기계부품 등의 상품명 목록입니다. 각 상품명에서 진짜 '브랜드명', '모델명(부품 번호)', '핵심 품목명(예: 릴레이, 실린더, 센서 등)', 그리고 '상품 용도(Purpose)'를 찾아 JSON 배열로 반환하세요.\n"
-                                    prompt += "조건:\n1. 반환 형식은 [{\"brand\": \"...\", \"model\": \"...\", \"item\": \"...\", \"purpose\": \"...\"}] 이어야 합니다.\n2. 정보가 없으면 빈 문자열을 넣으세요.\n3. 입력 개수와 100% 동일한 길이의 배열을 반환해야 합니다.\n4. [아주 중요] 상품명에 포함된 모든 영문/숫자 부품 번호(모델명)들을 하나도 빠짐없이 찾아 콤마(,)로 연결해 반환하세요. (예: 'Q64RD-G, Q64TCTTBWN') 만약 배열 형태로 반환된다면 제가 알아서 처리하겠습니다.\n5. [중요] 만약 원본 상품명에 브랜드명이 직접 적혀있지 않더라도, 추출된 모델명을 바탕으로 실제 제조사(브랜드명)를 유추할 수 있다면 AI의 지식을 활용해 해당 브랜드명(예: 야스카와, 미쓰비시 등)을 반드시 채워주세요.\n\n상품명 목록:\n"
+                                    prompt = "다음은 공구/기계부품 등의 상품명 또는 브랜드+모델명 목록입니다. 각 항목에서 진짜 '브랜드명', '모델명(부품 번호)', '핵심 품목명', 그리고 '상품 용도(카테고리)'를 찾아 JSON 배열로 반환하세요.\n"
+                                    prompt += "조건:\n1. 반환 형식은 [{\"brand\": \"...\", \"model\": \"...\", \"item\": \"...\", \"purpose\": \"...\", \"seo_name\": \"...\"}] 이어야 합니다.\n2. 정보가 없으면 빈 문자열을 넣으세요.\n3. 입력 개수와 100% 동일한 길이의 배열을 반환해야 합니다.\n4. [아주 중요] 상품명에 포함된 영문/숫자 부품 번호(모델명)들을 하나도 빠짐없이 찾아 콤마(,)로 연결하세요.\n5. 모델명을 바탕으로 실제 제조사(브랜드명)를 유추할 수 있다면 AI의 지식을 활용해 반드시 채워주세요.\n6. [핵심] 네이버 스마트스토어 SEO 가이드에 맞춘 최적화된 상품명을 'seo_name'에 생성해주세요. \n   - 규칙: [브랜드] + [모델명] + [핵심 품목 및 연관 검색어(동의어, 한글/영문 병기 추가)]\n   - 예시: '와이엠릴레이 EVR100A-24S' -> '와이엠릴레이 EVR100A-24S 고전압 DC EV 릴레이 콘택터'\n   - [주의] '정품' 이라는 단어는 절대 포함하지 마세요.\n7. 'purpose'(용도)는 엑셀 필터링 및 카테고리 매칭을 위해 '산업용 제어 부품', '공압 제어 부품', '산업용 센서' 처럼 아주 짧고 포괄적인 대분류 명칭으로 적어주세요.\n\n상품명 목록:\n"
                                     for idx, name in enumerate(batch):
                                         if str(name).lower() == 'nan' or not str(name).strip(): name = "Unknown"
                                         prompt += f"{idx+1}. {name}\n"
@@ -392,12 +399,13 @@ with tab2:
                                         if text.startswith("```"): text = text[3:]
                                         if text.endswith("```"): text = text[:-3]
                                         batch_result = json.loads(text.strip())
-                                        while len(batch_result) < len(batch): batch_result.append({"brand": "AI 실패", "model": "AI 실패", "item": "AI 실패", "purpose": "AI 실패"})
+                                        while len(batch_result) < len(batch): batch_result.append({"brand": "AI 실패", "model": "AI 실패", "item": "AI 실패", "purpose": "AI 실패", "seo_name": "AI 실패"})
                                         for r in batch_result[:len(batch)]:
                                             brand_val = r.get("brand")
                                             model_val = r.get("model")
                                             item_val = r.get("item")
                                             purpose_val = r.get("purpose")
+                                            seo_val = r.get("seo_name")
                                             
                                             if isinstance(model_val, list): model_val = ", ".join(str(m) for m in model_val)
                                             
@@ -405,6 +413,7 @@ with tab2:
                                             model_list.append(str(model_val or "").strip())
                                             item_list.append(str(item_val or "").strip())
                                             purpose_list.append(str(purpose_val or "").strip())
+                                            seo_name_list.append(str(seo_val or "").strip())
                                     except Exception as e:
                                         st.error(f"AI API 통신 중 에러 발생 (배치 {i}~): {e}")
                                         for _ in batch:
@@ -412,6 +421,7 @@ with tab2:
                                             model_list.append("AI Error")
                                             item_list.append("AI Error")
                                             purpose_list.append("AI Error")
+                                            seo_name_list.append("AI Error")
                                             
                                     progress_bar.progress(min((i + batch_size) / len(product_names), 1.0))
                                     time.sleep(3)
@@ -421,6 +431,7 @@ with tab2:
                                 df_result['추출_모델명'] = model_list[:len(df_result)]
                                 df_result['추출_품목'] = item_list[:len(df_result)]
                                 df_result['용도'] = purpose_list[:len(df_result)]
+                                df_result['AI_추천상품명'] = seo_name_list[:len(df_result)]
                                 
                             elif "[추천]" in split_rule:
                                 import re
@@ -471,9 +482,34 @@ with tab2:
                             
                         df_result['추출_품목'] = df_result['추출_품목'].fillna("").str.strip()
                         
-                        df_result['추천_스토어상품명'] = df_result.apply(
-                            lambda x: f"{x['추출_브랜드']} {x['추출_모델명']} {x['추출_품목']}".strip().replace("  ", " ").replace("  ", " "), axis=1
-                        )
+                        def build_seo_name(row):
+                            if 'AI_추천상품명' in row:
+                                ai_name = str(row['AI_추천상품명']).strip()
+                                if ai_name and ai_name not in ["AI 실패", "AI Error", "nan", "None"]:
+                                    return ai_name
+                                    
+                            parts = []
+                            for col in ['추출_브랜드', '추출_모델명', '추출_품목', '용도']:
+                                val = str(row.get(col, "")).strip()
+                                if val and val.lower() not in ['nan', 'none']:
+                                    # 네이버 SEO 가이드: 불필요한 특수문자 제거, 괄호 제거
+                                    import re
+                                    val = re.sub(r'[\[\]\(\)\{\}\<\>\!]', '', val)
+                                    parts.append(val)
+                            
+                            # 중복 단어 제거 (순서 유지, 어뷰징 방지)
+                            seen = set()
+                            final_words = []
+                            for part in parts:
+                                for word in part.split():
+                                    word_clean = word.strip()
+                                    if word_clean.lower() not in seen:
+                                        seen.add(word_clean.lower())
+                                        final_words.append(word_clean)
+                            
+                            return " ".join(final_words).strip()
+                            
+                        df_result['추천_스토어상품명'] = df_result.apply(build_seo_name, axis=1)
                         
                         df_result['타오바오_단가'] = None
                         df_result['최종_판매가'] = ""
@@ -513,6 +549,14 @@ with tab2:
                         total_cnt = len(df_result)
                         
                         import os
+                        # 기존 데이터가 있으면 아래에 추가(Append)
+                        if os.path.exists("last_analysis.pkl"):
+                            try:
+                                existing_df = pd.read_pickle("last_analysis.pkl")
+                                df_result = pd.concat([existing_df, df_result], ignore_index=True)
+                            except:
+                                pass # 파일이 손상되었거나 읽을 수 없으면 그냥 덮어씀
+                                
                         df_result.to_pickle("last_analysis.pkl")
                         st.session_state.df_result = df_result
                         st.session_state.analysis_done = True
@@ -548,6 +592,15 @@ with tab3:
                 
                 if st.button("🔄 '타오바오_단가' 입력값 기준으로 최종 판매가 일괄 계산", type="primary", use_container_width=True):
                     import math
+                    # Use edited_df's state if possible, otherwise df_result
+                    try:
+                        current_df = st.session_state.get("main_data_editor_fixed", {}).get("edited_rows", {})
+                        for row_idx_str, edits in current_df.items():
+                            row_idx = df_result.index[int(row_idx_str)]
+                            if "타오바오_단가" in edits:
+                                df_result.at[row_idx, "타오바오_단가"] = edits["타오바오_단가"]
+                    except: pass
+                    
                     for idx, row in df_result.iterrows():
                         try:
                             tb_price = float(row['타오바오_단가'])
@@ -559,8 +612,9 @@ with tab3:
                             pass
                     st.session_state.df_result = df_result
                     df_result.to_pickle("last_analysis.pkl")
-                    st.rerun()
-                    st.success("판매가 계산이 갱신되었습니다!")
+                    if "main_data_editor_fixed" in st.session_state:
+                        del st.session_state["main_data_editor_fixed"]
+                    st.success("판매가 계산이 완료되었습니다!")
                     import time
                     time.sleep(0.5)
                     st.rerun()
@@ -571,25 +625,10 @@ with tab3:
             if "선택" not in df_result.columns:
                 df_result["선택"] = False
                 df_result.to_pickle("last_analysis.pkl")
-            
-            sel_col1, sel_col2 = st.columns(2)
-            with sel_col1:
-                if st.button("☑️ 전체 선택", use_container_width=True):
-                    df_result["선택"] = True
-                    st.session_state.df_result = df_result
-                    df_result.to_pickle("last_analysis.pkl")
-                    if "main_data_editor_fixed" in st.session_state:
-                        del st.session_state["main_data_editor_fixed"]
-                    st.rerun()
-            with sel_col2:
-                if st.button("⬜ 전체 해제", use_container_width=True):
-                    df_result["선택"] = False
-                    st.session_state.df_result = df_result
-                    df_result.to_pickle("last_analysis.pkl")
-                    if "main_data_editor_fixed" in st.session_state:
-                        del st.session_state["main_data_editor_fixed"]
-                    st.rerun()
-            
+                
+            if "이미지_확보" not in df_result.columns:
+                df_result["이미지_확보"] = False
+                df_result.to_pickle("last_analysis.pkl")
             # 열 순서 설정 기능 (저장 가능)
             import json, os
             col_order_file = "column_order.json"
@@ -640,12 +679,81 @@ with tab3:
                 )
             del_btn_place = top_action_col1.empty()
             
+            # Ensure boolean columns are strictly bool before displaying
+            if '선택' in df_result.columns:
+                df_result['선택'] = df_result['선택'].astype(str).str.lower().map({'true': True, 'false': False, '1': True, '0': False}).fillna(False).astype(bool)
+            if '이미지_확보' in df_result.columns:
+                df_result['이미지_확보'] = df_result['이미지_확보'].astype(str).str.lower().map({'true': True, 'false': False, '1': True, '0': False}).fillna(False).astype(bool)
+
             if view_filter == "등록되지 않은 상품만 보기 (신규)":
-                filtered_df = df_result[df_result['스토어_등록여부'] != "✅ 기등록"]
+                filtered_df = df_result[df_result['스토어_등록여부'] != "✅ 기등록"].copy()
             elif view_filter == "이미 등록된 상품만 보기":
-                filtered_df = df_result[df_result['스토어_등록여부'] == "✅ 기등록"]
+                filtered_df = df_result[df_result['스토어_등록여부'] == "✅ 기등록"].copy()
             else:
-                filtered_df = df_result
+                filtered_df = df_result.copy()
+            st.markdown("---")
+            use_realtime_calc = st.checkbox("⚡ 단가 입력 시 실시간으로 최종 판매가 자동 계산 (끄면 스크롤이 위로 튀지 않아 연속 입력이 매우 편해집니다)", value=False)
+            
+            # --- 선택 기능 및 액션 버튼 ---
+            sel_col1, sel_col2, sel_col3, sel_col4, sel_col5 = st.columns([1.2, 1.2, 1, 1, 1.5])
+            with sel_col1:
+                if st.button("☑️ 현재 목록 전체 선택", use_container_width=True):
+                    df_result.loc[filtered_df.index, "선택"] = True
+                    st.session_state.df_result = df_result
+                    df_result.to_pickle("last_analysis.pkl")
+                    if "main_data_editor_fixed" in st.session_state: del st.session_state["main_data_editor_fixed"]
+                    st.rerun()
+            with sel_col2:
+                if st.button("⬜ 현재 목록 전체 해제", use_container_width=True):
+                    df_result.loc[filtered_df.index, "선택"] = False
+                    st.session_state.df_result = df_result
+                    df_result.to_pickle("last_analysis.pkl")
+                    if "main_data_editor_fixed" in st.session_state: del st.session_state["main_data_editor_fixed"]
+                    st.rerun()
+            with sel_col3:
+                start_idx = st.number_input("시작번호", min_value=1, value=1, step=1, label_visibility="collapsed")
+            with sel_col4:
+                end_idx = st.number_input("끝번호", min_value=1, value=10, step=1, label_visibility="collapsed")
+            with sel_col5:
+                if st.button("✅ 순번 범위 체크", use_container_width=True):
+                    if not filtered_df.empty:
+                        actual_start = max(0, start_idx - 1)
+                        actual_end = min(len(filtered_df), end_idx)
+                        if actual_start < actual_end:
+                            target_indices = filtered_df.index[actual_start:actual_end]
+                            df_result.loc[target_indices, "선택"] = True
+                            st.session_state.df_result = df_result
+                            df_result.to_pickle("last_analysis.pkl")
+                            if "main_data_editor_fixed" in st.session_state: del st.session_state["main_data_editor_fixed"]
+                            st.rerun()
+            
+            # --- 실시간 타오바오 단가 계산 (스크롤 유지) ---
+            if use_realtime_calc:
+                editor_state = st.session_state.get("main_data_editor_fixed", {})
+                if "edited_rows" in editor_state:
+                    import math
+                    for row_idx_str, edits in editor_state["edited_rows"].items():
+                        if "타오바오_단가" in edits:
+                            try:
+                                disp_idx = int(row_idx_str)
+                                if disp_idx < len(filtered_df):
+                                    real_idx = filtered_df.index[disp_idx]
+                                    tb_price_str = str(edits["타오바오_단가"]).strip()
+                                    if tb_price_str and tb_price_str.lower() not in ['nan', 'none']:
+                                        tb_price = float(tb_price_str)
+                                        if tb_price > 0:
+                                            final_price = (tb_price * ex_rate) * (1 + margin_rate / 100) + shipping_fee
+                                            final_price = math.ceil(final_price / 100) * 100
+                                            filtered_df.at[real_idx, '최종_판매가'] = str(int(final_price))
+                                            # df_result에도 반영 (메모리상에만)
+                                            df_result.at[real_idx, '최종_판매가'] = str(int(final_price))
+                                            
+                                            # 🚨 추가: 에디터가 리셋될 경우를 대비해, 방금 수정한 타오바오 단가도 df_display의 원본에 반영해줍니다!
+                                            filtered_df.at[real_idx, '타오바오_단가'] = edits["타오바오_단가"]
+                                            df_result.at[real_idx, '타오바오_단가'] = edits["타오바오_단가"]
+                            except:
+                                pass
+            # ----------------------------------------------
                 
             display_cols = ["선택"] + [c for c in selected_col_order if c in filtered_df.columns]
             df_display = filtered_df[display_cols].copy()
@@ -654,6 +762,7 @@ with tab3:
             df_display.insert(0, "순번", range(1, len(df_display) + 1))
 
             def render_editor_and_save():
+                global df_result
                 # Fixed key ensures the scroll position is maintained even when data is updated.
                 edited_df = st.data_editor(
                     df_display,
@@ -661,6 +770,11 @@ with tab3:
                     hide_index=True,
                     key="main_data_editor_fixed",
                     column_config={
+                        "선택": st.column_config.CheckboxColumn(
+                            "선택",
+                            help="삭제하거나 다룰 상품을 선택하세요",
+                            default=False
+                        ),
                         "순번": st.column_config.NumberColumn(
                             "순번",
                             disabled=True
@@ -676,35 +790,21 @@ with tab3:
                     }
                 )
                 
-                if not edited_df.equals(df_display):
-                    changed_for_auto_calc = False
-                    import math
-                    if '타오바오_단가' in edited_df.columns and '최종_판매가' in edited_df.columns:
-                        for idx in df_display.index:
-                            old_tb = str(df_display.at[idx, '타오바오_단가']).strip()
-                            new_tb = str(edited_df.at[idx, '타오바오_단가']).strip()
-                            
-                            if old_tb.lower() in ['nan', 'none']: old_tb = ''
-                            if new_tb.lower() in ['nan', 'none']: new_tb = ''
-                            
-                            if old_tb != new_tb and new_tb:
-                                try:
-                                    tb_price = float(new_tb)
-                                    final_price = (tb_price * ex_rate) * (1 + margin_rate / 100) + shipping_fee
-                                    final_price = math.ceil(final_price / 100) * 100
-                                    edited_df.at[idx, '최종_판매가'] = str(int(final_price))
-                                    changed_for_auto_calc = True
-                                except Exception as e:
-                                    print(f"[DEBUG] auto calc error: {e}")
-                                    pass
-                    if changed_for_auto_calc:
-                        # Update original df_result with edits ONLY if auto_calc triggered
-                        update_cols = [c for c in edited_df.columns if c != "순번"]
-                        df_result.loc[edited_df.index, update_cols] = edited_df[update_cols]
-                        st.session_state.df_result = df_result
-                        df_result.to_pickle("last_analysis.pkl")
-                        st.rerun()
-                    
+                # --- Removed automatic df_result update to prevent data_editor from resetting ---
+                
+                if st.button("💾 위 표에서 수정한 내용 모두 저장하기 (필수)", type="primary", use_container_width=True):
+                    update_cols = [c for c in edited_df.columns if c != "순번"]
+                    df_result.loc[edited_df.index, update_cols] = edited_df[update_cols]
+                    st.session_state.df_result = df_result
+                    df_result.to_pickle("last_analysis.pkl")
+                    # Clear editor state so it cleanly reloads the saved data
+                    if "main_data_editor_fixed" in st.session_state:
+                        del st.session_state["main_data_editor_fixed"]
+                    st.success("✅ 모든 수정사항이 영구적으로 저장되었습니다!")
+                    import time
+                    time.sleep(0.5)
+                    st.rerun()
+
                 import io
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
@@ -726,26 +826,49 @@ with tab3:
                     try:
                         uploaded_df = pd.read_excel(uploaded_file)
                         if 'ID (수정금지)' in uploaded_df.columns:
+                            # 엑셀에서 문자열이나 실수로 읽히는 것을 방지하고 무조건 정수로 변환
+                            uploaded_df['ID (수정금지)'] = pd.to_numeric(uploaded_df['ID (수정금지)'], errors='coerce')
+                            uploaded_df = uploaded_df.dropna(subset=['ID (수정금지)'])
+                            uploaded_df['ID (수정금지)'] = uploaded_df['ID (수정금지)'].astype(int)
                             uploaded_df = uploaded_df.set_index('ID (수정금지)')
-                            common_cols = [c for c in uploaded_df.columns if c in df_result.columns and c != '선택']
-                            for col in common_cols:
-                                orig_dtype = str(df_result[col].dtype).lower()
-                                if "string" in orig_dtype or "str" in orig_dtype or "object" in orig_dtype:
-                                    series = uploaded_df[col].fillna("")
-                                    # Convert to string and remove trailing .0 from Excel float parsing
-                                    series = series.astype(str).str.replace(r'\.0$', '', regex=True)
-                                    df_result.loc[uploaded_df.index, col] = series
-                                else:
-                                    df_result.loc[uploaded_df.index, col] = uploaded_df[col]
                             
-                            st.session_state.df_result = df_result
-                            df_result.to_pickle("last_analysis.pkl")
-                            if "main_data_editor_fixed" in st.session_state:
-                                del st.session_state["main_data_editor_fixed"]
-                            st.success("✅ 엑셀 파일 수정본이 성공적으로 적용되었습니다!")
-                            import time
-                            time.sleep(1.0)
-                            st.rerun()
+                            valid_idx = uploaded_df.index.intersection(df_result.index)
+                            if len(valid_idx) == 0:
+                                st.warning("⚠️ 업로드한 엑셀 파일의 상품 ID가 현재 목록과 하나도 일치하지 않습니다. (초기화되었거나 예전 파일입니다). 기존 작업 내역을 살리기 위해 현재 목록 맨 아래에 새 항목으로 모두 추가했습니다!")
+                                uploaded_df = uploaded_df.reset_index(drop=True)
+                                df_result = pd.concat([df_result, uploaded_df], ignore_index=True)
+                                if '선택' in df_result.columns:
+                                    df_result['선택'] = df_result['선택'].fillna(False).astype(bool)
+                                if '이미지_확보' in df_result.columns:
+                                    df_result['이미지_확보'] = df_result['이미지_확보'].fillna(False).astype(bool)
+                                st.session_state.df_result = df_result
+                                df_result.to_pickle("last_analysis.pkl")
+                                if "main_data_editor_fixed" in st.session_state:
+                                    del st.session_state["main_data_editor_fixed"]
+                                import time
+                                time.sleep(2.0)
+                                st.rerun()
+                            else:
+                                uploaded_df = uploaded_df.loc[valid_idx]
+                                common_cols = [c for c in uploaded_df.columns if c in df_result.columns and c != '선택']
+                                for col in common_cols:
+                                    orig_dtype = str(df_result[col].dtype).lower()
+                                    if "string" in orig_dtype or "str" in orig_dtype or "object" in orig_dtype:
+                                        series = uploaded_df[col].fillna("")
+                                        # Convert to string and remove trailing .0 from Excel float parsing
+                                        series = series.astype(str).str.replace(r'\.0$', '', regex=True)
+                                        df_result.loc[valid_idx, col] = series
+                                    else:
+                                        df_result.loc[valid_idx, col] = uploaded_df[col]
+                                
+                                st.session_state.df_result = df_result
+                                df_result.to_pickle("last_analysis.pkl")
+                                if "main_data_editor_fixed" in st.session_state:
+                                    del st.session_state["main_data_editor_fixed"]
+                                st.success(f"✅ 총 {len(valid_idx)}개의 엑셀 수정사항이 성공적으로 반영되었습니다!")
+                                import time
+                                time.sleep(1.0)
+                                st.rerun()
                         else:
                             st.error("❌ 'ID (수정금지)' 열이 없습니다. 이 프로그램에서 다운로드한 엑셀 파일을 그대로 사용해주세요.")
                     except Exception as e:
@@ -757,9 +880,10 @@ with tab3:
             action_col1, action_col2 = st.columns(2)
             
             with del_btn_place:
-                if st.button("🗑️ 선택한 행 삭제", type="secondary", use_container_width=True):
-                    if edited_df["선택"].any():
-                        selected_indices = edited_df[edited_df["선택"]].index
+                if st.button("🗑️ 선택 상품 삭제", type="secondary", use_container_width=True):
+                    is_selected = edited_df["선택"].fillna(False).astype(bool)
+                    if is_selected.any():
+                        selected_indices = edited_df[is_selected].index
                         df_result = df_result.drop(index=selected_indices).copy()
                         st.session_state.df_result = df_result
                         df_result.to_pickle("last_analysis.pkl")
@@ -774,9 +898,10 @@ with tab3:
 
             with action_col1:
                 if st.button("🚀 선택 항목 자동 업로드", type="primary", use_container_width=True):
-                        if edited_df["선택"].any():
-                            selected_indices = edited_df[edited_df["선택"]].index
-                            selected_items = df_result.loc[selected_indices].copy()
+                        is_selected = edited_df["선택"].fillna(False).astype(bool)
+                        if is_selected.any():
+                            selected_indices = edited_df[is_selected].index
+                            selected_items = edited_df.loc[selected_indices].copy()
 
                             # Load Config
                             conf = {}
@@ -809,13 +934,22 @@ with tab3:
                                             raise ValueError("추출_모델명이 비어있습니다.")
 
                                         # Find Image
+                                        import re
+                                        def sanitize_filename(name):
+                                            return re.sub(r'[<>:"/\\|?*]', '_', name)
+                                            
                                         img_dir = conf.get("image_dir", r"C:\Images")
                                         img_path = None
-                                        for ext in [".jpg", ".jpeg", ".png", ".bmp", ".gif"]:
-                                            p = os.path.join(img_dir, model + ext)
-                                            if os.path.exists(p):
-                                                img_path = p
-                                                break
+                                        
+                                        safe_model = sanitize_filename(model)
+                                        
+                                        for s_name in [model, safe_model]:
+                                            for ext in [".jpg", ".jpeg", ".png", ".bmp", ".gif"]:
+                                                p = os.path.join(img_dir, s_name + ext)
+                                                if os.path.exists(p):
+                                                    img_path = p
+                                                    break
+                                            if img_path: break
                                         if not img_path:
                                             default_p = os.path.join(img_dir, "default.jpg")
                                             if os.path.exists(default_p):
@@ -908,9 +1042,10 @@ with tab3:
 
                 with action_col2:
                     if st.button("📦 스토어 업로드 없이 4단계로 이동", type="secondary", use_container_width=True):
-                        if edited_df["선택"].any():
-                            selected_indices = edited_df[edited_df["선택"]].index
-                            selected_items = df_result.loc[selected_indices].copy()
+                        is_selected = edited_df["선택"].fillna(False).astype(bool)
+                        if is_selected.any():
+                            selected_indices = edited_df[is_selected].index
+                            selected_items = edited_df.loc[selected_indices].copy()
                             selected_items["선택"] = False
                             if os.path.exists("completed_analysis.pkl"):
                                 completed_df = pd.read_pickle("completed_analysis.pkl")
