@@ -332,8 +332,11 @@ with tab2:
         else:
             new_products_file = st.file_uploader("새 상품 엑셀 파일 선택", type=["xlsx", "xls"], key="new")
             if new_products_file is not None:
-                df_new = pd.read_excel(new_products_file)
-                st.success("✅ 엑셀 파일을 성공적으로 불러왔습니다.")
+                try:
+                    df_new = pd.read_excel(new_products_file, dtype=str)
+                    st.success("✅ 엑셀 파일을 성공적으로 불러왔습니다.")
+                except Exception as e:
+                    st.error(f"엑셀 파일 읽기 오류: {e}")
 
     with col2:
         st.subheader("2. 내 스토어 연동 상태")
