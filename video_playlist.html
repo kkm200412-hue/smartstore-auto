@@ -436,6 +436,9 @@
       recLed.classList.remove("live");
       recText.textContent = "전체 재생 완료";
       timecode.textContent = "00:00 / 00:00";
+      if (player && typeof player.exitFullscreen === "function") {
+        player.exitFullscreen().catch(function () {});
+      }
       replayBtn.hidden = false;
     }
   }
@@ -466,6 +469,12 @@
       playIndex(0);
     } else {
       playIndex(0);
+    }
+
+    // Must be requested inside this click handler (same user gesture) or
+    // mobile browsers silently ignore it.
+    if (player && typeof player.requestFullscreen === "function") {
+      player.requestFullscreen().catch(function () {});
     }
   }
 
