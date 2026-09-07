@@ -3,153 +3,353 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>동영상 순차 자동재생</title>
+<title>이어보기 플레이리스트</title>
 <style>
+  :root {
+    --bg: #0c0d10;
+    --surface: #16181d;
+    --surface-line: #262931;
+    --ink: #f0efe9;
+    --ink-dim: #8b8d97;
+    --ink-faint: #55575f;
+    --accent: #ff6a3d;
+    --accent-dim: #7a3a26;
+    --rec: #ff3b3b;
+    --radius: 14px;
+  }
+
   * { box-sizing: border-box; }
+
   html, body {
     margin: 0;
     padding: 0;
-    background: #0b0b0c;
-    color: #f5f5f5;
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
   }
-  .wrap {
-    max-width: 720px;
+
+  body {
+    font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    padding: 28px 16px 48px;
+  }
+
+  .mono {
+    font-family: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stage {
+    max-width: 460px;
     margin: 0 auto;
-    padding: 16px;
   }
+
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+
+  .kicker .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
   h1 {
-    font-size: 18px;
-    font-weight: 600;
-    text-align: center;
-    margin: 12px 0 16px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 22px;
+    text-wrap: balance;
   }
-  .player-box {
+
+  h1 span {
+    color: var(--ink-dim);
+    font-weight: 500;
+  }
+
+  /* --- monitor frame --- */
+
+  .monitor {
     position: relative;
-    width: 100%;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--surface-line);
+  }
+
+  .monitor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px 12px;
+    font-size: 12px;
+  }
+
+  .rec {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-dim);
+  }
+
+  .rec-led {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ink-faint);
+  }
+
+  .rec-led.live {
+    background: var(--rec);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rec-led.live { animation: none; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .timecode {
+    color: var(--ink-dim);
+  }
+
+  .timecode strong { color: var(--ink); font-weight: 500; }
+
+  .screen-frame {
+    position: relative;
     aspect-ratio: 16 / 9;
     background: #000;
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
   }
+
+  .screen-frame::before,
+  .screen-frame::after,
+  .corner-tl, .corner-tr, .corner-bl, .corner-br {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .corner-tl { top: 8px; left: 8px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .corner-tr { top: 8px; right: 8px; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  .corner-bl { bottom: 8px; left: 8px; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+  .corner-br { bottom: 8px; right: 8px; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
   #player {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
   }
+
   #player iframe {
     width: 100%;
     height: 100%;
     border: 0;
   }
+
   .overlay {
     position: absolute;
     inset: 0;
+    z-index: 4;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    background: rgba(0,0,0,0.55);
+    gap: 14px;
+    background: radial-gradient(ellipse at center, rgba(20,21,25,0.55) 0%, rgba(8,9,11,0.9) 100%);
     cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
   }
+
   .overlay[hidden] { display: none; }
+
   .play-btn {
-    width: 78px;
-    height: 78px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    background: #ffffff;
+    background: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 6px rgba(255,106,61,0.16);
   }
+
   .play-btn::after {
     content: "";
     border-style: solid;
-    border-width: 14px 0 14px 22px;
-    border-color: transparent transparent transparent #111;
+    border-width: 11px 0 11px 18px;
+    border-color: transparent transparent transparent #16130f;
     margin-left: 4px;
   }
+
   .overlay-text {
-    font-size: 14px;
-    color: #fff;
+    font-size: 13px;
+    color: var(--ink-dim);
     text-align: center;
-    padding: 0 24px;
+    line-height: 1.6;
+    padding: 0 30px;
   }
-  .status {
-    margin-top: 12px;
-    text-align: center;
-    font-size: 14px;
-    color: #b9b9bd;
+
+  .overlay-text b { color: var(--ink); font-weight: 600; }
+
+  /* --- timeline strip --- */
+
+  .timeline {
+    display: flex;
+    gap: 4px;
+    margin-top: 14px;
+    padding: 0 2px;
   }
-  .status strong { color: #fff; }
-  .list {
-    margin-top: 16px;
+
+  .seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-line);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .seg-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.15s linear;
+  }
+
+  .seg.done .seg-fill { width: 100%; }
+
+  /* --- clip list --- */
+
+  .clips {
+    margin-top: 18px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
-  .list-item {
+
+  .clip {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 12px;
+    padding: 11px 12px;
     border-radius: 10px;
-    background: #1a1a1c;
-    font-size: 13px;
-    color: #cfcfd2;
+    background: var(--surface);
+    border: 1px solid transparent;
   }
-  .list-item.active {
-    background: #2b2f38;
-    color: #fff;
-  }
-  .list-item.done {
-    color: #7d7d82;
-  }
-  .idx {
-    width: 22px;
-    height: 22px;
+
+  .clip-idx {
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #333;
+    background: var(--bg);
+    border: 1px solid var(--surface-line);
+    color: var(--ink-faint);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
     flex-shrink: 0;
   }
-  .list-item.active .idx { background: #4b8bff; }
-  .list-item.done .idx { background: #2f6d3f; }
+
+  .clip-label {
+    font-size: 13.5px;
+    color: var(--ink-dim);
+  }
+
+  .clip.active {
+    border-color: var(--accent-dim);
+    background: #201812;
+  }
+
+  .clip.active .clip-idx {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a1208;
+  }
+
+  .clip.active .clip-label { color: var(--ink); }
+
+  .clip.done .clip-idx {
+    background: transparent;
+    border-color: var(--ink-faint);
+    color: var(--ink-faint);
+  }
+
+  .clip.done .clip-label { color: var(--ink-faint); }
+
+  .clip.done .clip-label::after {
+    content: " · 재생 완료";
+    font-size: 11.5px;
+  }
+
+  /* --- replay --- */
+
   .replay-btn {
-    display: block;
-    margin: 16px auto 0;
-    padding: 10px 22px;
-    border-radius: 999px;
-    border: none;
-    background: #4b8bff;
-    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 18px;
+    padding: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--surface-line);
+    background: var(--surface);
+    color: var(--ink);
     font-size: 14px;
     font-weight: 600;
+    font-family: inherit;
   }
+
   .replay-btn[hidden] { display: none; }
+
+  .replay-btn:active { background: var(--surface-line); }
 </style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 </head>
 <body>
-<div class="wrap">
-  <h1>동영상 순차 자동재생</h1>
+<div class="stage">
+  <div class="kicker"><span class="dot"></span>MOBILE · SEQUENTIAL PLAYBACK</div>
+  <h1>한 번 탭하면<br><span>영상 6개가 순서대로 이어집니다</span></h1>
 
-  <div class="player-box">
-    <div id="player"></div>
-    <div class="overlay" id="overlay">
-      <div class="play-btn"></div>
-      <div class="overlay-text">터치하면 전체 영상이<br>순서대로 이어서 재생됩니다</div>
+  <div class="monitor">
+    <div class="monitor-head">
+      <div class="rec"><span class="rec-led" id="recLed"></span><span id="recText">대기 중</span></div>
+      <div class="timecode mono" id="timecode">00:00 / 00:00</div>
     </div>
+
+    <div class="screen-frame">
+      <div class="corner-tl"></div>
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <div class="corner-br"></div>
+      <div id="player"></div>
+      <div class="overlay" id="overlay">
+        <div class="play-btn"></div>
+        <div class="overlay-text">탭 한 번으로 <b>6개 영상</b>이<br>끊김 없이 순서대로 재생됩니다</div>
+      </div>
+    </div>
+
+    <div class="timeline" id="timeline"></div>
   </div>
 
-  <div class="status" id="status">준비됨 · 총 <strong id="totalCount"></strong>개 영상</div>
-
-  <div class="list" id="list"></div>
+  <div class="clips" id="clips"></div>
 
   <button class="replay-btn" id="replayBtn" hidden>처음부터 다시 재생</button>
 </div>
@@ -167,30 +367,50 @@
   ];
 
   var overlay = document.getElementById("overlay");
-  var statusEl = document.getElementById("status");
-  var listEl = document.getElementById("list");
+  var recLed = document.getElementById("recLed");
+  var recText = document.getElementById("recText");
+  var timecode = document.getElementById("timecode");
+  var timelineEl = document.getElementById("timeline");
+  var clipsEl = document.getElementById("clips");
   var replayBtn = document.getElementById("replayBtn");
-  document.getElementById("totalCount").textContent = videoIds.length;
 
   var currentIndex = -1;
   var player = null;
 
   videoIds.forEach(function (id, i) {
-    var item = document.createElement("div");
-    item.className = "list-item";
-    item.id = "item-" + i;
-    item.innerHTML = '<span class="idx">' + (i + 1) + '</span><span>영상 ' + (i + 1) + '</span>';
-    listEl.appendChild(item);
+    var seg = document.createElement("div");
+    seg.className = "seg";
+    seg.id = "seg-" + i;
+    seg.innerHTML = '<div class="seg-fill"></div>';
+    timelineEl.appendChild(seg);
+
+    var clip = document.createElement("div");
+    clip.className = "clip";
+    clip.id = "clip-" + i;
+    clip.innerHTML =
+      '<span class="clip-idx">' + (i + 1) + '</span>' +
+      '<span class="clip-label">영상 ' + (i + 1) + '</span>';
+    clipsEl.appendChild(clip);
   });
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+  }
 
   function setActive(i) {
     videoIds.forEach(function (_, idx) {
-      var el = document.getElementById("item-" + idx);
-      el.classList.remove("active", "done");
-      if (idx < i) el.classList.add("done");
-      if (idx === i) el.classList.add("active");
+      var clip = document.getElementById("clip-" + idx);
+      var seg = document.getElementById("seg-" + idx);
+      clip.classList.remove("active", "done");
+      seg.classList.remove("done");
+      var fill = seg.querySelector(".seg-fill");
+      if (idx < i) { clip.classList.add("done"); seg.classList.add("done"); }
+      if (idx === i) { clip.classList.add("active"); fill.style.width = "0%"; }
     });
-    statusEl.innerHTML = "재생 중 · <strong>" + (i + 1) + " / " + videoIds.length + "</strong>";
+    recText.textContent = "재생 중 · " + (i + 1) + " / " + videoIds.length;
   }
 
   function playIndex(i) {
@@ -209,17 +429,29 @@
       playIndex(next);
     } else {
       videoIds.forEach(function (_, idx) {
-        document.getElementById("item-" + idx).classList.add("done");
-        document.getElementById("item-" + idx).classList.remove("active");
+        document.getElementById("clip-" + idx).classList.add("done");
+        document.getElementById("clip-" + idx).classList.remove("active");
+        document.getElementById("seg-" + idx).classList.add("done");
       });
-      statusEl.innerHTML = "<strong>전체 영상 재생 완료</strong>";
+      recLed.classList.remove("live");
+      recText.textContent = "전체 재생 완료";
+      timecode.textContent = "00:00 / 00:00";
       replayBtn.hidden = false;
+    }
+  }
+
+  function onTimeUpdate(data) {
+    timecode.textContent = fmt(data.seconds) + " / " + fmt(data.duration);
+    var seg = document.getElementById("seg-" + currentIndex);
+    if (seg && data.duration) {
+      seg.querySelector(".seg-fill").style.width = Math.min(100, (data.seconds / data.duration) * 100) + "%";
     }
   }
 
   function start() {
     overlay.hidden = true;
     replayBtn.hidden = true;
+    recLed.classList.add("live");
 
     if (!player) {
       player = new Vimeo.Player("player", {
@@ -230,6 +462,7 @@
         responsive: true
       });
       player.on("ended", onEnded);
+      player.on("timeupdate", onTimeUpdate);
       playIndex(0);
     } else {
       playIndex(0);
