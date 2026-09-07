@@ -439,6 +439,7 @@
       if (player && typeof player.exitFullscreen === "function") {
         player.exitFullscreen().catch(function () {});
       }
+      unlockOrientation();
       replayBtn.hidden = false;
     }
   }
@@ -474,7 +475,22 @@
     // Must be requested inside this click handler (same user gesture) or
     // mobile browsers silently ignore it.
     if (player && typeof player.requestFullscreen === "function") {
-      player.requestFullscreen().catch(function () {});
+      player.requestFullscreen().then(lockLandscape).catch(function () {});
+    }
+  }
+
+  function lockLandscape() {
+    // Orientation lock only works while the page is fullscreen, and only
+    // Chromium-based mobile browsers implement it (iOS Safari has no
+    // equivalent API, so there the viewer has to rotate the phone by hand).
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch(function () {});
+    }
+  }
+
+  function unlockOrientation() {
+    if (screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch (e) {}
     }
   }
 
