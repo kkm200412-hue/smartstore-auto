@@ -473,9 +473,13 @@
     }
 
     // Must be requested inside this click handler (same user gesture) or
-    // mobile browsers silently ignore it.
+    // mobile browsers silently ignore it. The actual orientation lock is
+    // handled by the fullscreenchange listener below, once the browser has
+    // really entered fullscreen (Vimeo's promise resolves on postMessage
+    // round-trip, not on the real fullscreenchange event, so locking here
+    // directly is too early and fails silently).
     if (player && typeof player.requestFullscreen === "function") {
-      player.requestFullscreen().then(lockLandscape).catch(function () {});
+      player.requestFullscreen().catch(function () {});
     }
   }
 
@@ -493,6 +497,17 @@
       try { screen.orientation.unlock(); } catch (e) {}
     }
   }
+
+  ["fullscreenchange", "webkitfullscreenchange"].forEach(function (evt) {
+    document.addEventListener(evt, function () {
+      var fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsElement) {
+        lockLandscape();
+      } else {
+        unlockOrientation();
+      }
+    });
+  });
 
   overlay.addEventListener("click", start);
   replayBtn.addEventListener("click", start);
