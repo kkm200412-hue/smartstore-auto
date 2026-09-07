@@ -43,6 +43,14 @@
     margin: 0 auto;
   }
 
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
   .kicker {
     display: flex;
     align-items: center;
@@ -50,7 +58,6 @@
     font-size: 11px;
     letter-spacing: 0.14em;
     color: var(--ink-faint);
-    margin-bottom: 10px;
   }
 
   .kicker .dot {
@@ -58,6 +65,29 @@
     height: 6px;
     border-radius: 50%;
     background: var(--accent);
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    border: 1px solid var(--surface-line);
+    background: var(--surface);
+    color: var(--ink-dim);
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-family: inherit;
+    line-height: 1;
+  }
+
+  .icon-btn:active { background: var(--surface-line); color: var(--ink); }
+
+  .icon-btn.small {
+    padding: 6px 9px;
+    font-size: 14px;
+    border-radius: 8px;
   }
 
   h1 {
@@ -117,6 +147,12 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.35; }
+  }
+
+  .head-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .timecode {
@@ -203,6 +239,27 @@
   }
 
   .overlay-text b { color: var(--ink); font-weight: 600; }
+
+  /* --- fullscreen button on the screen itself --- */
+
+  .fs-corner-btn {
+    position: absolute;
+    z-index: 5;
+    bottom: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(10,11,13,0.55);
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fs-corner-btn:active { background: rgba(255,106,61,0.5); }
 
   /* --- timeline strip --- */
 
@@ -319,19 +376,192 @@
   .replay-btn[hidden] { display: none; }
 
   .replay-btn:active { background: var(--surface-line); }
+
+  /* --- settings modal --- */
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(5,6,8,0.72);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-backdrop[hidden] { display: none; }
+
+  .modal {
+    width: 100%;
+    max-width: 460px;
+    max-height: 86vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--surface-line);
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 18px 24px;
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .modal-head h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .modal-hint {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    margin: 4px 0 16px;
+    line-height: 1.6;
+  }
+
+  .link-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .link-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--surface-line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--ink);
+    font-size: 13px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  .link-input:focus {
+    outline: none;
+    border-color: var(--accent-dim);
+  }
+
+  .remove-row-btn {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--surface-line);
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
+
+  .remove-row-btn:active { background: var(--surface-line); color: var(--ink); }
+
+  .add-row-btn {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px dashed var(--surface-line);
+    background: transparent;
+    color: var(--ink-dim);
+    font-size: 13px;
+    font-family: inherit;
+    margin-bottom: 18px;
+  }
+
+  .add-row-btn:active { border-color: var(--accent-dim); color: var(--ink); }
+
+  .save-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #16130f;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+  }
+
+  .save-btn:active { background: #e85a2e; }
+
+  .share-box {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--surface-line);
+  }
+
+  .share-box[hidden] { display: none; }
+
+  .share-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+
+  .share-row { display: flex; gap: 8px; }
+
+  .share-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--surface-line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--ink-dim);
+    font-size: 12px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid var(--surface-line);
+    background: var(--surface-line);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  .copy-btn:active { background: var(--accent-dim); }
+
+  .share-copied {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .share-copied[hidden] { display: none; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 </head>
 <body>
 <div class="stage">
-  <div class="kicker"><span class="dot"></span>MOBILE · SEQUENTIAL PLAYBACK</div>
-  <h1>한 번 탭하면<br><span>영상 6개가 순서대로 이어집니다</span></h1>
+  <div class="topbar">
+    <div class="kicker"><span class="dot"></span>MOBILE · SEQUENTIAL PLAYBACK</div>
+    <button class="icon-btn" id="settingsBtn" type="button">⚙ 링크 관리</button>
+  </div>
+  <h1>한 번 탭하면<br><span>영상 <span id="countLabel1">6</span>개가 순서대로 이어집니다</span></h1>
 
   <div class="monitor">
     <div class="monitor-head">
       <div class="rec"><span class="rec-led" id="recLed"></span><span id="recText">대기 중</span></div>
-      <div class="timecode mono" id="timecode">00:00 / 00:00</div>
+      <div class="head-right">
+        <div class="timecode mono" id="timecode">00:00 / 00:00</div>
+      </div>
     </div>
 
     <div class="screen-frame">
@@ -342,8 +572,9 @@
       <div id="player"></div>
       <div class="overlay" id="overlay">
         <div class="play-btn"></div>
-        <div class="overlay-text">탭 한 번으로 <b>6개 영상</b>이<br>끊김 없이 순서대로 재생됩니다</div>
+        <div class="overlay-text">탭 한 번으로 <b>영상 <span id="countLabel2">6</span>개</b>가<br>끊김 없이 순서대로 재생됩니다</div>
       </div>
+      <button class="fs-corner-btn" id="fsBtn" type="button" aria-label="전체화면" hidden>⛶</button>
     </div>
 
     <div class="timeline" id="timeline"></div>
@@ -354,10 +585,32 @@
   <button class="replay-btn" id="replayBtn" hidden>처음부터 다시 재생</button>
 </div>
 
+<div class="modal-backdrop" id="settingsModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>영상 링크 관리</h2>
+      <button class="icon-btn small" id="closeSettings" type="button" aria-label="닫기">✕</button>
+    </div>
+    <p class="modal-hint">Vimeo 링크(https://player.vimeo.com/video/...) 또는 숫자 ID만 붙여넣어도 됩니다. 위에서부터 순서대로 재생됩니다. 저장하면 이 목록이 담긴 새 공유 링크가 만들어집니다.</p>
+    <div class="link-rows" id="linkRows"></div>
+    <button class="add-row-btn" id="addRowBtn" type="button">+ 링크 추가</button>
+    <button class="save-btn" id="saveSettings" type="button">저장하고 공유 링크 만들기</button>
+
+    <div class="share-box" id="shareBox" hidden>
+      <div class="share-label mono">SHARE LINK</div>
+      <div class="share-row">
+        <input class="share-input mono" id="shareInput" readonly>
+        <button class="copy-btn" id="copyShare" type="button">복사</button>
+      </div>
+      <div class="share-copied" id="copiedNote" hidden>링크가 복사됐습니다. 이 링크를 고객에게 공유하세요.</div>
+    </div>
+  </div>
+</div>
+
 <script src="https://player.vimeo.com/api/player.js"></script>
 <script>
 (function () {
-  var videoIds = [
+  var DEFAULT_IDS = [
     "734614658",
     "733896097",
     "736710751",
@@ -373,31 +626,93 @@
   var timelineEl = document.getElementById("timeline");
   var clipsEl = document.getElementById("clips");
   var replayBtn = document.getElementById("replayBtn");
+  var fsBtn = document.getElementById("fsBtn");
+  var countLabel1 = document.getElementById("countLabel1");
+  var countLabel2 = document.getElementById("countLabel2");
 
+  var settingsBtn = document.getElementById("settingsBtn");
+  var settingsModal = document.getElementById("settingsModal");
+  var closeSettingsBtn = document.getElementById("closeSettings");
+  var linkRowsEl = document.getElementById("linkRows");
+  var addRowBtn = document.getElementById("addRowBtn");
+  var saveSettingsBtn = document.getElementById("saveSettings");
+  var shareBox = document.getElementById("shareBox");
+  var shareInput = document.getElementById("shareInput");
+  var copyShareBtn = document.getElementById("copyShare");
+  var copiedNote = document.getElementById("copiedNote");
+
+  var videoIds = loadIds();
   var currentIndex = -1;
   var player = null;
 
-  videoIds.forEach(function (id, i) {
-    var seg = document.createElement("div");
-    seg.className = "seg";
-    seg.id = "seg-" + i;
-    seg.innerHTML = '<div class="seg-fill"></div>';
-    timelineEl.appendChild(seg);
+  function extractVimeoId(raw) {
+    if (!raw) return null;
+    raw = raw.trim();
+    var m = raw.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+    if (m) return m[1];
+    if (/^\d+$/.test(raw)) return raw;
+    return null;
+  }
 
-    var clip = document.createElement("div");
-    clip.className = "clip";
-    clip.id = "clip-" + i;
-    clip.innerHTML =
-      '<span class="clip-idx">' + (i + 1) + '</span>' +
-      '<span class="clip-label">영상 ' + (i + 1) + '</span>';
-    clipsEl.appendChild(clip);
-  });
+  function loadIds() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var raw = params.get("ids");
+      if (raw) {
+        var fromUrl = raw.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+        if (fromUrl.length) return fromUrl;
+      }
+    } catch (e) {}
+    try {
+      var stored = localStorage.getItem("playlistIds");
+      if (stored) {
+        var arr = JSON.parse(stored);
+        if (Array.isArray(arr) && arr.length) return arr;
+      }
+    } catch (e) {}
+    return DEFAULT_IDS.slice();
+  }
+
+  function persistIds(ids) {
+    try { localStorage.setItem("playlistIds", JSON.stringify(ids)); } catch (e) {}
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set("ids", ids.join(","));
+      history.replaceState(null, "", url.toString());
+    } catch (e) {}
+  }
 
   function fmt(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
     var m = Math.floor(sec / 60);
     var s = sec % 60;
     return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+  }
+
+  function updateCountLabels() {
+    countLabel1.textContent = videoIds.length;
+    countLabel2.textContent = videoIds.length;
+  }
+
+  function renderList() {
+    timelineEl.innerHTML = "";
+    clipsEl.innerHTML = "";
+    videoIds.forEach(function (id, i) {
+      var seg = document.createElement("div");
+      seg.className = "seg";
+      seg.id = "seg-" + i;
+      seg.innerHTML = '<div class="seg-fill"></div>';
+      timelineEl.appendChild(seg);
+
+      var clip = document.createElement("div");
+      clip.className = "clip";
+      clip.id = "clip-" + i;
+      clip.innerHTML =
+        '<span class="clip-idx">' + (i + 1) + '</span>' +
+        '<span class="clip-label">영상 ' + (i + 1) + '</span>';
+      clipsEl.appendChild(clip);
+    });
+    updateCountLabels();
   }
 
   function setActive(i) {
@@ -440,6 +755,7 @@
         player.exitFullscreen().catch(function () {});
       }
       unlockOrientation();
+      fsBtn.hidden = true;
       replayBtn.hidden = false;
     }
   }
@@ -452,21 +768,26 @@
     }
   }
 
+  function createPlayer() {
+    player = new Vimeo.Player("player", {
+      id: videoIds[0],
+      autoplay: true,
+      playsinline: true,
+      controls: true,
+      responsive: true
+    });
+    player.on("ended", onEnded);
+    player.on("timeupdate", onTimeUpdate);
+  }
+
   function start() {
     overlay.hidden = true;
     replayBtn.hidden = true;
+    fsBtn.hidden = false;
     recLed.classList.add("live");
 
     if (!player) {
-      player = new Vimeo.Player("player", {
-        id: videoIds[0],
-        autoplay: true,
-        playsinline: true,
-        controls: true,
-        responsive: true
-      });
-      player.on("ended", onEnded);
-      player.on("timeupdate", onTimeUpdate);
+      createPlayer();
       playIndex(0);
     } else {
       playIndex(0);
@@ -479,6 +800,20 @@
     // round-trip, not on the real fullscreenchange event, so locking here
     // directly is too early and fails silently).
     if (player && typeof player.requestFullscreen === "function") {
+      player.requestFullscreen().catch(function () {});
+    }
+  }
+
+  function toggleFullscreen() {
+    if (!player) {
+      start();
+      return;
+    }
+    var fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsElement) {
+      if (document.exitFullscreen) document.exitFullscreen().catch(function () {});
+      else if (typeof player.exitFullscreen === "function") player.exitFullscreen().catch(function () {});
+    } else if (typeof player.requestFullscreen === "function") {
       player.requestFullscreen().catch(function () {});
     }
   }
@@ -509,8 +844,103 @@
     });
   });
 
+  function resetPlaybackState(newIds) {
+    videoIds = newIds;
+    currentIndex = -1;
+    overlay.hidden = false;
+    replayBtn.hidden = true;
+    fsBtn.hidden = true;
+    recLed.classList.remove("live");
+    recText.textContent = "대기 중";
+    timecode.textContent = "00:00 / 00:00";
+    renderList();
+    if (player) {
+      var old = player;
+      player = null;
+      old.destroy().catch(function () {});
+    }
+  }
+
+  // --- settings modal ---
+
+  function addRow(value) {
+    var row = document.createElement("div");
+    row.className = "link-row";
+    var input = document.createElement("input");
+    input.className = "link-input";
+    input.type = "text";
+    input.placeholder = "Vimeo 링크 또는 ID";
+    input.value = value || "";
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "remove-row-btn";
+    removeBtn.setAttribute("aria-label", "삭제");
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", function () { row.remove(); });
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    linkRowsEl.appendChild(row);
+  }
+
+  function openSettings() {
+    linkRowsEl.innerHTML = "";
+    videoIds.forEach(function (id) { addRow(id); });
+    shareBox.hidden = true;
+    copiedNote.hidden = true;
+    settingsModal.hidden = false;
+  }
+
+  function closeSettings() {
+    settingsModal.hidden = true;
+  }
+
+  function handleSave() {
+    var inputs = linkRowsEl.querySelectorAll(".link-input");
+    var ids = [];
+    inputs.forEach(function (input) {
+      var id = extractVimeoId(input.value);
+      if (id) ids.push(id);
+    });
+    if (!ids.length) {
+      alert("링크를 최소 1개 이상 입력해주세요.");
+      return;
+    }
+    persistIds(ids);
+    resetPlaybackState(ids);
+    shareInput.value = window.location.href;
+    shareBox.hidden = false;
+    copiedNote.hidden = true;
+  }
+
+  function copyShareLink() {
+    shareInput.focus();
+    shareInput.select();
+    var done = function () {
+      copiedNote.hidden = false;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareInput.value).then(done).catch(function () {
+        try { document.execCommand("copy"); done(); } catch (e) {}
+      });
+    } else {
+      try { document.execCommand("copy"); done(); } catch (e) {}
+    }
+  }
+
+  renderList();
+
   overlay.addEventListener("click", start);
   replayBtn.addEventListener("click", start);
+  fsBtn.addEventListener("click", toggleFullscreen);
+
+  settingsBtn.addEventListener("click", openSettings);
+  closeSettingsBtn.addEventListener("click", closeSettings);
+  settingsModal.addEventListener("click", function (e) {
+    if (e.target === settingsModal) closeSettings();
+  });
+  addRowBtn.addEventListener("click", function () { addRow(""); });
+  saveSettingsBtn.addEventListener("click", handleSave);
+  copyShareBtn.addEventListener("click", copyShareLink);
 })();
 </script>
 </body>
