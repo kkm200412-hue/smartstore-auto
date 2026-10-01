@@ -47,8 +47,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
     margin-bottom: 10px;
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 8px;
   }
 
   .kicker {
@@ -466,16 +472,22 @@
 
   .remove-row-btn:active { background: var(--surface-line); color: var(--ink); }
 
+  .add-row-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
   .add-row-btn {
-    width: 100%;
-    padding: 11px;
+    flex: 1;
+    min-width: 0;
+    padding: 11px 8px;
     border-radius: 10px;
     border: 1px dashed var(--surface-line);
     background: transparent;
     color: var(--ink-dim);
-    font-size: 13px;
+    font-size: 12.5px;
     font-family: inherit;
-    margin-bottom: 18px;
   }
 
   .add-row-btn:active { border-color: var(--accent-dim); color: var(--ink); }
@@ -544,6 +556,70 @@
   }
 
   .share-copied[hidden] { display: none; }
+
+  /* --- QR scanner --- */
+
+  .scanner-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .scanner-overlay[hidden] { display: none; }
+
+  .scanner-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    color: #fff;
+    font-size: 12.5px;
+  }
+
+  .scanner-video-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .scanner-video-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scan-frame {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    width: min(68vw, 280px);
+    height: min(68vw, 280px);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .scan-frame .corner-tl, .scan-frame .corner-tr,
+  .scan-frame .corner-bl, .scan-frame .corner-br {
+    width: 28px;
+    height: 28px;
+  }
+
+  .scan-status {
+    position: absolute;
+    bottom: 10%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 13px;
+    padding: 0 24px;
+    min-height: 1.4em;
+  }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -552,7 +628,10 @@
 <div class="stage">
   <div class="topbar">
     <div class="kicker"><span class="dot"></span>MOBILE · SEQUENTIAL PLAYBACK</div>
-    <button class="icon-btn" id="settingsBtn" type="button">⚙ 링크 관리</button>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="quickScanBtn" type="button">📷 QR로 변경</button>
+      <button class="icon-btn" id="settingsBtn" type="button">⚙ 링크 관리</button>
+    </div>
   </div>
   <h1>한 번 탭하면<br><span>영상 <span id="countLabel1">6</span>개가 순서대로 이어집니다</span></h1>
 
@@ -593,7 +672,10 @@
     </div>
     <p class="modal-hint">Vimeo 링크(https://player.vimeo.com/video/...) 또는 숫자 ID만 붙여넣어도 됩니다. 위에서부터 순서대로 재생됩니다. 저장하면 이 목록이 담긴 새 공유 링크가 만들어집니다.</p>
     <div class="link-rows" id="linkRows"></div>
-    <button class="add-row-btn" id="addRowBtn" type="button">+ 링크 추가</button>
+    <div class="add-row-group">
+      <button class="add-row-btn" id="addRowBtn" type="button">+ 링크 추가</button>
+      <button class="add-row-btn" id="scanAddBtn" type="button">📷 QR로 추가</button>
+    </div>
     <button class="save-btn" id="saveSettings" type="button">저장하고 공유 링크 만들기</button>
 
     <div class="share-box" id="shareBox" hidden>
@@ -607,7 +689,26 @@
   </div>
 </div>
 
+<div class="scanner-overlay" id="scannerOverlay" hidden>
+  <div class="scanner-head">
+    <span id="scannerTitle">QR 코드를 화면 중앙에 맞춰주세요</span>
+    <button class="icon-btn small" id="scannerCancel" type="button" aria-label="취소">✕</button>
+  </div>
+  <div class="scanner-video-wrap">
+    <video id="scanVideo" playsinline autoplay muted></video>
+    <div class="scan-frame">
+      <div class="corner-tl"></div>
+      <div class="corner-tr"></div>
+      <div class="corner-bl"></div>
+      <div class="corner-br"></div>
+    </div>
+    <div class="scan-status" id="scanStatus"></div>
+  </div>
+</div>
+<canvas id="scanCanvas" style="display:none"></canvas>
+
 <script src="https://player.vimeo.com/api/player.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 <script>
 (function () {
   var DEFAULT_IDS = [
@@ -641,9 +742,21 @@
   var copyShareBtn = document.getElementById("copyShare");
   var copiedNote = document.getElementById("copiedNote");
 
+  var quickScanBtn = document.getElementById("quickScanBtn");
+  var scanAddBtn = document.getElementById("scanAddBtn");
+  var scannerOverlay = document.getElementById("scannerOverlay");
+  var scannerTitle = document.getElementById("scannerTitle");
+  var scannerCancel = document.getElementById("scannerCancel");
+  var scanVideo = document.getElementById("scanVideo");
+  var scanCanvas = document.getElementById("scanCanvas");
+  var scanStatus = document.getElementById("scanStatus");
+
   var videoIds = loadIds();
   var currentIndex = -1;
   var player = null;
+  var scannerStream = null;
+  var scanRafId = null;
+  var scanMode = "replace";
 
   function extractVimeoId(raw) {
     if (!raw) return null;
@@ -861,6 +974,93 @@
     }
   }
 
+  // --- QR scanner ---
+
+  function openScanner(mode) {
+    if (typeof jsQR !== "function") {
+      alert("QR 인식 기능을 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("이 브라우저는 카메라 스캔을 지원하지 않습니다.");
+      return;
+    }
+
+    scanMode = mode;
+    scannerTitle.textContent = mode === "append"
+      ? "추가할 QR 코드를 화면 중앙에 맞춰주세요"
+      : "새 QR 코드를 화면 중앙에 맞춰주세요";
+    scanStatus.textContent = "카메라를 여는 중...";
+    scannerOverlay.hidden = false;
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } })
+      .then(function (stream) {
+        scannerStream = stream;
+        scanVideo.srcObject = stream;
+        scanVideo.play();
+        scanStatus.textContent = "";
+        scanRafId = requestAnimationFrame(tickScan);
+      })
+      .catch(function () {
+        scanStatus.textContent = "카메라를 사용할 수 없습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.";
+      });
+  }
+
+  function closeScanner() {
+    scannerOverlay.hidden = true;
+    if (scanRafId) {
+      cancelAnimationFrame(scanRafId);
+      scanRafId = null;
+    }
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(function (t) { t.stop(); });
+      scannerStream = null;
+    }
+    scanVideo.srcObject = null;
+  }
+
+  function tickScan() {
+    if (!scannerStream) return;
+    if (scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
+      scanCanvas.width = scanVideo.videoWidth;
+      scanCanvas.height = scanVideo.videoHeight;
+      var ctx = scanCanvas.getContext("2d");
+      ctx.drawImage(scanVideo, 0, 0, scanCanvas.width, scanCanvas.height);
+      var imageData = null;
+      try {
+        imageData = ctx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+      } catch (e) {}
+      if (imageData) {
+        var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) {
+          onQrDetected(code.data);
+          return;
+        }
+      }
+    }
+    scanRafId = requestAnimationFrame(tickScan);
+  }
+
+  function onQrDetected(text) {
+    var id = extractVimeoId(text);
+    closeScanner();
+    if (!id) {
+      alert("QR 코드에서 Vimeo 링크를 찾지 못했어요.\n인식된 내용: " + text);
+      return;
+    }
+    if (scanMode === "append") {
+      if (!settingsModal.hidden) addRow(id);
+      return;
+    }
+    var ids = [id];
+    persistIds(ids);
+    resetPlaybackState(ids);
+    openSettings();
+    shareInput.value = window.location.href;
+    shareBox.hidden = false;
+    copiedNote.hidden = true;
+  }
+
   // --- settings modal ---
 
   function addRow(value) {
@@ -941,6 +1141,10 @@
   addRowBtn.addEventListener("click", function () { addRow(""); });
   saveSettingsBtn.addEventListener("click", handleSave);
   copyShareBtn.addEventListener("click", copyShareLink);
+
+  quickScanBtn.addEventListener("click", function () { openScanner("replace"); });
+  scanAddBtn.addEventListener("click", function () { openScanner("append"); });
+  scannerCancel.addEventListener("click", closeScanner);
 })();
 </script>
 </body>
