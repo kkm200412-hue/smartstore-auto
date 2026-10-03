@@ -659,17 +659,95 @@
     height: 28px;
   }
 
+  .scan-frame > div { transition: border-color 0.15s; }
+
+  .scan-frame.hit > div { border-color: #3ddc84; }
+
+  .scan-batch {
+    background: var(--surface);
+    border-top: 1px solid var(--surface-line);
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .scan-batch[hidden] { display: none; }
+
+  .scan-batch-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    min-height: 34px;
+    align-items: center;
+  }
+
+  .scan-batch-empty {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+
+  .scan-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 6px;
+    border-radius: 999px;
+    background: #201812;
+    border: 1px solid var(--accent-dim);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+  }
+
+  .scan-chip b {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #1a1208;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .scan-batch-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .scan-batch-actions .save-btn { flex: 1; }
+
+  .scan-undo {
+    flex-shrink: 0;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid var(--surface-line);
+    background: transparent;
+    color: var(--ink-dim);
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .scan-undo:disabled { opacity: 0.4; }
+
   .scan-status {
     position: absolute;
-    bottom: 10%;
-    left: 0;
-    right: 0;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 32px);
     text-align: center;
     color: #fff;
     font-size: 13px;
-    padding: 0 24px;
-    min-height: 1.4em;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.7);
   }
+
+  .scan-status:empty { display: none; }
 </style>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -679,7 +757,7 @@
   <div class="topbar">
     <div class="kicker"><span class="dot"></span>MOBILE · SEQUENTIAL PLAYBACK</div>
     <div class="topbar-actions">
-      <button class="icon-btn" id="quickScanBtn" type="button">📷 QR로 변경</button>
+      <button class="icon-btn" id="quickScanBtn" type="button">📷 QR 전체 변경</button>
       <button class="icon-btn" id="settingsBtn" type="button">⚙ 링크 관리</button>
     </div>
   </div>
@@ -752,13 +830,20 @@
   </div>
   <div class="scanner-video-wrap">
     <video id="scanVideo" playsinline autoplay muted></video>
-    <div class="scan-frame">
+    <div class="scan-frame" id="scanFrame">
       <div class="corner-tl"></div>
       <div class="corner-tr"></div>
       <div class="corner-bl"></div>
       <div class="corner-br"></div>
     </div>
     <div class="scan-status" id="scanStatus"></div>
+  </div>
+  <div class="scan-batch" id="scanBatch" hidden>
+    <div class="scan-batch-list" id="scanBatchList"></div>
+    <div class="scan-batch-actions">
+      <button class="scan-undo" id="scanUndo" type="button">마지막 취소</button>
+      <button class="save-btn" id="scanDone" type="button">완료</button>
+    </div>
   </div>
 </div>
 <canvas id="scanCanvas" style="display:none"></canvas>
@@ -812,7 +897,13 @@
   var player = null;
   var scannerStream = null;
   var scanRafId = null;
-  var scanMode = "replace";
+  var scanMode = "batch";
+  var batchIds = [];
+  var scanFrame = document.getElementById("scanFrame");
+  var scanBatch = document.getElementById("scanBatch");
+  var scanBatchList = document.getElementById("scanBatchList");
+  var scanUndo = document.getElementById("scanUndo");
+  var scanDone = document.getElementById("scanDone");
 
   function extractVimeoId(raw) {
     if (!raw) return null;
@@ -1051,9 +1142,13 @@
     }
 
     scanMode = mode;
-    scannerTitle.textContent = mode === "append"
-      ? "추가할 QR 코드를 화면 중앙에 맞춰주세요"
-      : "새 QR 코드를 화면 중앙에 맞춰주세요";
+    batchIds = [];
+    scanBatch.hidden = mode !== "batch";
+    if (mode === "batch") {
+      renderBatch();
+    } else {
+      scannerTitle.textContent = "추가할 QR 코드를 화면 중앙에 맞춰주세요";
+    }
     scanStatus.textContent = "카메라를 여는 중...";
     scannerOverlay.hidden = false;
 
@@ -1121,22 +1216,96 @@
 
   function onQrDetected(text) {
     var id = extractVimeoId(text);
+    if (scanMode === "batch") {
+      handleBatchScan(id);
+      return;
+    }
     closeScanner();
     if (!id) {
       alert("QR 코드에서 Vimeo 링크를 찾지 못했어요.\n인식된 내용: " + text);
       return;
     }
-    if (scanMode === "append") {
-      if (!settingsModal.hidden) addRow(id);
+    if (!settingsModal.hidden) addRow(id);
+  }
+
+  // --- batch mode: scan every QR in order, then save them all at once ---
+
+  function resumeScan(delayMs) {
+    setTimeout(function () {
+      if (scannerStream) scanRafId = requestAnimationFrame(tickScan);
+    }, delayMs);
+  }
+
+  function flashHit() {
+    scanFrame.classList.add("hit");
+    setTimeout(function () { scanFrame.classList.remove("hit"); }, 700);
+    if (navigator.vibrate) navigator.vibrate(80);
+  }
+
+  function handleBatchScan(id) {
+    if (!id) {
+      scanStatus.textContent = "Vimeo 영상 QR이 아니에요. 다른 QR을 비춰주세요.";
+      resumeScan(1500);
       return;
     }
-    var ids = [id];
+    var existing = batchIds.indexOf(id);
+    if (existing !== -1) {
+      scanStatus.textContent = "이미 " + (existing + 1) + "번으로 저장된 영상이에요.";
+      resumeScan(1200);
+      return;
+    }
+    batchIds.push(id);
+    flashHit();
+    scanStatus.textContent = batchIds.length + "번 영상 저장됨 ✓";
+    renderBatch();
+    // Pause briefly so the same code isn't re-read while the phone moves to the next one.
+    resumeScan(1200);
+  }
+
+  function renderBatch() {
+    scannerTitle.textContent = (batchIds.length + 1) + "번 영상 QR을 화면 중앙에 맞춰주세요";
+    scanBatchList.innerHTML = "";
+    if (!batchIds.length) {
+      var empty = document.createElement("div");
+      empty.className = "scan-batch-empty";
+      empty.textContent = "QR을 찍는 순서대로 1번, 2번… 으로 저장됩니다";
+      scanBatchList.appendChild(empty);
+    }
+    batchIds.forEach(function (id, i) {
+      var chip = document.createElement("div");
+      chip.className = "scan-chip";
+      chip.innerHTML = '<b>' + (i + 1) + '</b><span class="mono">' + id + '</span>';
+      scanBatchList.appendChild(chip);
+    });
+    scanBatchList.scrollLeft = scanBatchList.scrollWidth;
+    scanUndo.disabled = !batchIds.length;
+    scanDone.textContent = batchIds.length ? "완료 · " + batchIds.length + "개 저장" : "완료";
+  }
+
+  function undoBatch() {
+    batchIds.pop();
+    scanStatus.textContent = "";
+    renderBatch();
+  }
+
+  function finishBatch() {
+    var ids = batchIds.slice();
+    closeScanner();
+    if (!ids.length) return;
     persistIds(ids);
     resetPlaybackState(ids);
     openSettings();
     shareInput.value = window.location.href;
     shareBox.hidden = false;
     copiedNote.hidden = true;
+  }
+
+  function cancelScanner() {
+    if (scanMode === "batch" && batchIds.length &&
+        !confirm("찍은 QR " + batchIds.length + "개를 저장하지 않고 닫을까요?")) {
+      return;
+    }
+    closeScanner();
   }
 
   // --- settings modal ---
@@ -1220,9 +1389,11 @@
   saveSettingsBtn.addEventListener("click", handleSave);
   copyShareBtn.addEventListener("click", copyShareLink);
 
-  quickScanBtn.addEventListener("click", function () { openScanner("replace"); });
+  quickScanBtn.addEventListener("click", function () { openScanner("batch"); });
   scanAddBtn.addEventListener("click", function () { openScanner("append"); });
-  scannerCancel.addEventListener("click", closeScanner);
+  scannerCancel.addEventListener("click", cancelScanner);
+  scanUndo.addEventListener("click", undoBatch);
+  scanDone.addEventListener("click", finishBatch);
 
   // --- install as app ---
 
