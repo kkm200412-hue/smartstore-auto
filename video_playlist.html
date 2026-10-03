@@ -764,7 +764,7 @@
 <canvas id="scanCanvas" style="display:none"></canvas>
 
 <script src="https://player.vimeo.com/api/player.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="jsQR.js"></script>
 <script>
 (function () {
   var DEFAULT_IDS = [
@@ -1032,8 +1032,16 @@
 
   // --- QR scanner ---
 
+  var detector = null;
+
+  function nativeDetector() {
+    if (!("BarcodeDetector" in window)) return null;
+    try { return new BarcodeDetector({ formats: ["qr_code"] }); } catch (e) { return null; }
+  }
+
   function openScanner(mode) {
-    if (typeof jsQR !== "function") {
+    detector = nativeDetector();
+    if (!detector && typeof jsQR !== "function") {
       alert("QR 인식 기능을 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도해주세요.");
       return;
     }
@@ -1077,7 +1085,21 @@
 
   function tickScan() {
     if (!scannerStream) return;
-    if (scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
+    if (detector && scanVideo.readyState >= 2) {
+      detector.detect(scanVideo).then(function (codes) {
+        if (!scannerStream) return;
+        if (codes.length && codes[0].rawValue) {
+          onQrDetected(codes[0].rawValue);
+          return;
+        }
+        scanRafId = requestAnimationFrame(tickScan);
+      }).catch(function () {
+        detector = null;
+        scanRafId = requestAnimationFrame(tickScan);
+      });
+      return;
+    }
+    if (typeof jsQR === "function" && scanVideo.readyState === scanVideo.HAVE_ENOUGH_DATA) {
       scanCanvas.width = scanVideo.videoWidth;
       scanCanvas.height = scanVideo.videoHeight;
       var ctx = scanCanvas.getContext("2d");

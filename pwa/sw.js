@@ -1,6 +1,7 @@
-const CACHE = "playlist-v1";
+const CACHE = "playlist-v2";
 const SHELL = [
   "./",
+  "jsQR.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
