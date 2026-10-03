@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>이어보기 플레이리스트</title>
+<title>아이누리 영상재생</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0c0d10">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="이어보기">
+<meta name="apple-mobile-web-app-title" content="아이누리 영상재생">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
   :root {
@@ -895,6 +895,7 @@
   var videoIds = loadIds();
   var currentIndex = -1;
   var player = null;
+  var loadedId = null;
   var scannerStream = null;
   var scanRafId = null;
   var scanMode = "batch";
@@ -988,10 +989,24 @@
     recText.textContent = "재생 중 · " + (i + 1) + " / " + videoIds.length;
   }
 
+  function soundOn() {
+    player.setVolume(1).catch(function () {});
+    return player.setMuted(false).catch(function () {});
+  }
+
   function playIndex(i) {
     currentIndex = i;
     setActive(i);
+    // The first video is preloaded, so play it straight away while the tap
+    // still counts as a user gesture; that's what lets it start with sound.
+    if (loadedId === videoIds[i]) {
+      soundOn();
+      player.play().catch(function (err) { console.error("재생 오류:", err); });
+      return;
+    }
     player.loadVideo(videoIds[i]).then(function () {
+      loadedId = videoIds[i];
+      soundOn();
       return player.play();
     }).catch(function (err) {
       console.error("재생 오류:", err);
@@ -1028,30 +1043,38 @@
     }
   }
 
+  // Built up front (not on tap) and without Vimeo's autoplay flag: Vimeo
+  // force-mutes autoplayed embeds, which is why playback used to start muted.
+  // allow="autoplay" lets the parent page's tap unlock sound inside the iframe.
   function createPlayer() {
-    player = new Vimeo.Player("player", {
-      id: videoIds[0],
-      autoplay: true,
-      playsinline: true,
-      controls: true,
-      responsive: true
-    });
+    if (!window.Vimeo) return;
+    var holder = document.getElementById("player");
+    holder.innerHTML = "";
+    var iframe = document.createElement("iframe");
+    iframe.src = "https://player.vimeo.com/video/" + videoIds[0] +
+      "?autoplay=0&muted=0&playsinline=1&controls=1";
+    iframe.setAttribute("allow", "autoplay; fullscreen; picture-in-picture; encrypted-media");
+    iframe.setAttribute("allowfullscreen", "");
+    holder.appendChild(iframe);
+    player = new Vimeo.Player(iframe);
+    loadedId = videoIds[0];
     player.on("ended", onEnded);
     player.on("timeupdate", onTimeUpdate);
+    player.on("play", function () {
+      player.getMuted().then(function (muted) { if (muted) soundOn(); }).catch(function () {});
+    });
   }
 
   function start() {
+    if (!player) createPlayer();
+    if (!player) {
+      alert("영상 플레이어를 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 열어주세요.");
+      return;
+    }
     overlay.hidden = true;
     replayBtn.hidden = true;
     fsBtn.hidden = false;
     recLed.classList.add("live");
-
-    if (!player) {
-      createPlayer();
-      playIndex(0);
-    } else {
-      playIndex(0);
-    }
 
     // Must be requested inside this click handler (same user gesture) or
     // mobile browsers silently ignore it. The actual orientation lock is
@@ -1059,9 +1082,11 @@
     // really entered fullscreen (Vimeo's promise resolves on postMessage
     // round-trip, not on the real fullscreenchange event, so locking here
     // directly is too early and fails silently).
-    if (player && typeof player.requestFullscreen === "function") {
+    if (typeof player.requestFullscreen === "function") {
       player.requestFullscreen().catch(function () {});
     }
+
+    playIndex(0);
   }
 
   function toggleFullscreen() {
@@ -1117,7 +1142,11 @@
     if (player) {
       var old = player;
       player = null;
-      old.destroy().catch(function () {});
+      old.destroy().catch(function () {}).then(function () {
+        if (!player) createPlayer();
+      });
+    } else {
+      createPlayer();
     }
   }
 
@@ -1375,6 +1404,7 @@
   }
 
   renderList();
+  createPlayer();
 
   overlay.addEventListener("click", start);
   replayBtn.addEventListener("click", start);

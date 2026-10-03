@@ -1,6 +1,6 @@
 {
-  "name": "이어보기 플레이리스트",
-  "short_name": "이어보기",
+  "name": "아이누리 영상재생",
+  "short_name": "아이누리 영상재생",
   "description": "유치원 영상을 한 번 탭으로 순서대로 이어서 재생",
   "lang": "ko",
   "start_url": "./",

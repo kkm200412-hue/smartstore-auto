@@ -1,4 +1,4 @@
-const CACHE = "playlist-v3";
+const CACHE = "playlist-v4";
 const SHELL = [
   "./",
   "jsQR.js",
