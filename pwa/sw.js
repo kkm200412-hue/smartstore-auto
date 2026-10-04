@@ -1,7 +1,10 @@
-const CACHE = "playlist-v4";
+const CACHE = "playlist-v5";
 const SHELL = [
   "./",
   "jsQR.js",
+  "fonts/Pretendard-Regular.subset.woff2",
+  "fonts/Pretendard-SemiBold.subset.woff2",
+  "fonts/Pretendard-Bold.subset.woff2",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
