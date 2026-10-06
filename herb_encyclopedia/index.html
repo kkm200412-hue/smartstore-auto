@@ -1,0 +1,620 @@
+<title>허브 백과사전</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=EB+Garamond:ital@1&display=swap">
+<style>
+/* Layout: 식물 표본집(herbarium). 카드 한 장이 표본 한 장 — 위에는 그림, 오른쪽 아래엔 채집 라벨. */
+:root {
+  --paper: #e9ece3;
+  --sheet: #f7f8f3;
+  --ink: #1e2a21;
+  --muted: #5b6a5e;
+  --line: #c9d1c2;
+  --accent: #3d6b38;
+  --accent-soft: #dfe8d6;
+  --bloom: #6a58a0;
+  --warn: #8f5f0c;
+  --warn-soft: #f3e7cc;
+  --leaf: #6f9a5e;
+  --leaf-grey: #93a58e;
+  --leaf-dark: #3f6b3a;
+  --leaf-purple: #7b4a6e;
+  --fl-white: #fbfbf6;
+  --fl-purple: #8a6cc4;
+  --fl-lilac: #b9a3d9;
+  --fl-yellow: #e2b42c;
+  --fl-blue: #4f78c9;
+  --fl-orange: #e07b25;
+  --fl-pink: #d68cb0;
+  --fl-red: #b8323a;
+  --f-display: "Hahmlet", "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-latin: "EB Garamond", "Iowan Old Style", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111613; --sheet: #19201b; --ink: #e2e8de; --muted: #98a69a; --line: #2d3a30;
+    --accent: #8fbe80; --accent-soft: #24331f; --bloom: #b4a2e2; --warn: #e3b562; --warn-soft: #33290f;
+    --leaf: #7fae6c; --leaf-grey: #9fb29a; --leaf-dark: #5f9255; --leaf-purple: #a46f95;
+    --fl-white: #ecefe6; --fl-purple: #a68be0; --fl-lilac: #c9b8ea; --fl-yellow: #e8c04a; --fl-blue: #7a9ee6;
+    --fl-orange: #ec9446; --fl-pink: #e3a3c3; --fl-red: #d9545b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111613; --sheet: #19201b; --ink: #e2e8de; --muted: #98a69a; --line: #2d3a30;
+  --accent: #8fbe80; --accent-soft: #24331f; --bloom: #b4a2e2; --warn: #e3b562; --warn-soft: #33290f;
+  --leaf: #7fae6c; --leaf-grey: #9fb29a; --leaf-dark: #5f9255; --leaf-purple: #a46f95;
+  --fl-white: #ecefe6; --fl-purple: #a68be0; --fl-lilac: #c9b8ea; --fl-yellow: #e8c04a; --fl-blue: #7a9ee6;
+  --fl-orange: #ec9446; --fl-pink: #e3a3c3; --fl-red: #d9545b;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  padding-inline: 16px; padding-block: 0 56px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+.latin { font-family: var(--f-latin); font-style: italic; }
+.eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── header ── */
+header.top { padding-block: 40px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px 32px; align-items: end; }
+header.top h1 { font-size: clamp(34px, 6vw, 54px); font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+header.top p { margin: 10px 0 0; color: var(--muted); max-width: 58ch; }
+.ledger { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); text-align: right; line-height: 1.8; font-variant-numeric: tabular-nums; }
+.ledger b { color: var(--ink); font-weight: 500; }
+@media (max-width: 640px) { header.top { grid-template-columns: 1fr; } .ledger { text-align: left; } }
+
+/* ── this month ── */
+.season { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); padding-block: 14px; display: grid; grid-template-columns: 150px 1fr; gap: 12px 24px; align-items: start; }
+.season h2 { font-size: 20px; font-weight: 600; }
+.season .rows { display: grid; gap: 8px; min-width: 0; }
+.season .row { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+.season .row .k { font-family: var(--f-mono); font-size: 12px; color: var(--muted); width: 3.2em; flex: none; }
+.linkchip { border: 0; background: none; padding: 0; cursor: pointer; color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+.linkchip:hover { text-decoration-color: var(--accent); }
+.season .none { color: var(--muted); font-size: 14px; }
+@media (max-width: 640px) { .season { grid-template-columns: 1fr; } }
+
+/* ── toolbar ── */
+.tools { display: grid; gap: 12px; padding-block: 20px 8px; }
+.searchrow { display: flex; gap: 10px; flex-wrap: wrap; }
+.search { flex: 1 1 260px; min-width: 0; position: relative; }
+.search input { width: 100%; padding: 11px 14px 11px 40px; border: 1px solid var(--line); background: var(--sheet); border-radius: 3px; }
+.search input::placeholder { color: var(--muted); }
+.search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.selects { display: flex; gap: 8px; flex-wrap: wrap; }
+.selects label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.selects select { padding: 9px 10px; border: 1px solid var(--line); background: var(--sheet); border-radius: 3px; color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: transparent; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 13.5px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.chip.fav[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+.count { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+/* ── grid of specimen sheets ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; padding-block: 12px; }
+.grouphead { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px; padding-top: 14px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.grouphead h3 { font-size: 19px; font-weight: 600; }
+.grouphead span { color: var(--muted); }
+.sheet {
+  position: relative; background: var(--sheet); border: 1px solid var(--line);
+  display: flex; flex-direction: column; cursor: pointer; text-align: left; padding: 0;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.sheet:hover { transform: translateY(-2px); box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--ink) 45%, transparent); }
+.sheet canvas { width: 100%; aspect-ratio: 4 / 4.2; display: block; }
+.sheet .acc { position: absolute; top: 10px; left: 12px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+.label { margin: 0 10px 10px; border: 1px solid var(--ink); padding: 8px 10px 9px; display: grid; gap: 2px; background: var(--sheet); }
+.label .ko { font-family: var(--f-display); font-size: 19px; font-weight: 600; line-height: 1.25; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.label .ko small { font-family: var(--f-body); font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.label .la { font-size: 15px; color: var(--ink); line-height: 1.25; }
+.label .fam { font-family: var(--f-mono); font-size: 11px; color: var(--muted); letter-spacing: .03em; }
+.label .meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tag { font-size: 11.5px; padding: 1px 7px; border-radius: 2px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.tag.diff1 { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.tag.diff3 { background: var(--warn-soft); color: var(--warn); }
+.star { position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border: 0; background: none; cursor: pointer; color: var(--muted); display: grid; place-items: center; border-radius: 50%; }
+.star[aria-pressed="true"] { color: var(--accent); }
+.star:hover { background: var(--accent-soft); }
+.empty { grid-column: 1 / -1; padding: 48px 0; text-align: center; color: var(--muted); }
+.empty button { margin-top: 10px; }
+
+/* ── detail dialog ── */
+dialog { border: 0; padding: 0; background: var(--sheet); color: var(--ink); width: min(980px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); border-radius: 4px; box-shadow: 0 30px 80px -30px rgba(0,0,0,.55); }
+dialog::backdrop { background: color-mix(in srgb, #0d120f 55%, transparent); }
+.dlg { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); }
+.dlg .plate { border-right: 1px solid var(--line); padding: 20px; display: grid; gap: 14px; align-content: start; }
+.dlg .plate canvas { width: 100%; aspect-ratio: 4 / 5; display: block; }
+.dlg .plate .acc { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.dlg .body { padding: 24px 28px 28px; display: grid; gap: 20px; align-content: start; min-width: 0; }
+.dlg .titlebar { display: flex; gap: 12px; justify-content: space-between; align-items: start; }
+.dlg h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; line-height: 1.15; }
+.dlg .sub { margin-top: 4px; display: grid; gap: 2px; }
+.dlg .sub .latin { font-size: 21px; }
+.dlg .sub .fam { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.dlg .btns { display: flex; gap: 6px; flex: none; }
+.iconbtn { width: 38px; height: 38px; border: 1px solid var(--line); background: var(--sheet); border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+.iconbtn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.lead { margin: 0; font-size: 16px; max-width: 62ch; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.facts > div { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 10px 12px; min-width: 0; }
+.facts dt { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 2px 0 0; font-size: 14px; }
+.gauge { display: inline-flex; gap: 3px; vertical-align: -2px; margin-right: 6px; }
+.gauge i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.gauge i.on { background: var(--accent); }
+.sect h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.sect p { margin: 0; max-width: 62ch; }
+.cal { overflow-x: auto; }
+.cal table { border-collapse: collapse; width: 100%; min-width: 460px; font-variant-numeric: tabular-nums; }
+.cal th, .cal td { font-size: 12px; padding: 0; text-align: center; }
+.cal thead th { font-family: var(--f-mono); color: var(--muted); font-weight: 400; padding-bottom: 4px; }
+.cal thead th.now { color: var(--ink); font-weight: 500; }
+.cal tbody th { text-align: left; font-weight: 500; padding-right: 10px; white-space: nowrap; font-size: 12.5px; }
+.cal td { height: 20px; border-left: 1px solid var(--sheet); }
+.cal td span { display: block; height: 12px; border-radius: 1px; background: color-mix(in srgb, var(--line) 50%, transparent); }
+.cal td.sow span { background: var(--warn); opacity: .75; }
+.cal td.harv span { background: var(--accent); }
+.cal td.bloom span { background: var(--bloom); }
+.cal td.now { box-shadow: inset 0 0 0 1px var(--ink); }
+.caution { background: var(--warn-soft); color: var(--ink); padding: 12px 14px; border-left: 3px solid var(--warn); }
+.caution h3 { color: var(--warn); }
+.pairs { display: flex; flex-wrap: wrap; gap: 6px; }
+.pairs span { border: 1px solid var(--line); padding: 2px 10px; border-radius: 999px; font-size: 13.5px; }
+.kin { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+@media (max-width: 760px) {
+  .dlg { grid-template-columns: 1fr; }
+  .dlg .plate { border-right: 0; border-bottom: 1px solid var(--line); grid-template-columns: 120px 1fr; align-items: center; padding: 14px 16px; }
+  .dlg .plate canvas { aspect-ratio: 4 / 5; }
+  .dlg .body { padding: 18px 16px 22px; }
+}
+footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; max-width: 70ch; }
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } .sheet:hover { transform: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Herbarium · 표본 기록부</div>
+      <h1>허브 백과사전</h1>
+      <p>요리, 차, 향, 정원에 쓰는 허브를 표본 한 장씩 정리했습니다. 카드를 누르면 향과 쓰임새, 키우는 법, 열두 달 달력, 주의할 점이 나옵니다.</p>
+    </div>
+    <div class="ledger" id="ledger"></div>
+  </header>
+
+  <section class="season" aria-labelledby="season-h">
+    <h2 id="season-h"></h2>
+    <div class="rows" id="season-rows"></div>
+  </section>
+
+  <section class="tools" aria-label="찾기와 거르기">
+    <div class="searchrow">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="이름, 학명, 향, 요리로 찾기 (예: 레몬향, 파스타, Mentha)" autocomplete="off">
+      </div>
+      <div class="selects">
+        <label for="f-sun">햇빛
+          <select id="f-sun">
+            <option value="0">전체</option>
+            <option value="3">양지</option>
+            <option value="2">반그늘도 가능</option>
+          </select>
+        </label>
+        <label for="f-diff">난이도
+          <select id="f-diff">
+            <option value="0">전체</option>
+            <option value="1">쉬움</option>
+            <option value="2">보통</option>
+            <option value="3">까다로움</option>
+          </select>
+        </label>
+        <label for="f-sort">정렬
+          <select id="f-sort">
+            <option value="name">가나다순</option>
+            <option value="family">과(科)별로 묶기</option>
+            <option value="easy">키우기 쉬운 순</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="count" id="count" aria-live="polite"></div>
+  </section>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    재배 정보는 중부 지방 노지 기준입니다. 남부나 실내에서는 시기가 2~4주 달라질 수 있습니다. 약효 관련 내용은 전통적인 쓰임새를 소개한 것이며, 임신 중이거나 약을 복용 중이라면 차나 추출물을 꾸준히 마시기 전에 의사나 약사와 상의하세요. ★ 표시한 허브는 이 브라우저에만 저장됩니다.
+  </footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="d-name"></dialog>
+
+<script>
+const HERBS = [
+ {id:'basil', ko:'바질', en:'Sweet Basil', la:'Ocimum basilicum', fam:'꿀풀과', famLa:'Lamiaceae', life:'한해살이', origin:'인도·열대 아시아', tags:['요리'], sun:3, water:3, diff:1, winter:'10℃ 아래로 내려가면 잎이 검게 상합니다. 한해살이로 기르는 게 편합니다.', sow:[4,5], harv:[6,7,8,9], bloom:[7,8,9], prop:'씨앗, 꺾꽂이(물꽂이로도 뿌리가 잘 내림)', aroma:'달콤하고 정향 같은 향, 끝에 살짝 후추 맛', desc:'이탈리아 요리를 대표하는 허브. 토마토와 짝을 이루면 거의 실패가 없습니다.', use:'페스토, 카프레제, 마르게리타 피자, 토마토 파스타. 열을 오래 가하면 향이 날아가니 마지막에 넣습니다.', grow:'꽃대가 올라오면 바로 따 줘야 잎이 계속 납니다. 위에서 두세 마디 아래를 잘라 주면 곁가지가 나와 풍성해집니다. 겉흙이 마르면 흠뻑 주세요.', caution:'', pair:['토마토','모차렐라','올리브오일','마늘','잣'], fig:{body:'opp', n:4, L:.24, w:.58, s:0, leaf:'leaf', fl:'spike', fc:'fl-white'}},
+ {id:'peppermint', ko:'페퍼민트', en:'Peppermint', la:'Mentha × piperita', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'유럽 (워터민트×스피어민트 교잡종)', tags:['차','아로마','약용'], sun:2, water:3, diff:1, winter:'영하 20℃ 정도까지 노지 월동합니다. 겨울엔 땅 위가 시들어도 봄에 다시 올라옵니다.', sow:[], harv:[5,6,7,8,9,10], bloom:[7,8], prop:'꺾꽂이, 포기나누기 (교잡종이라 씨앗으로는 같은 향이 안 나옵니다)', aroma:'멘톨이 강한 차가운 청량감', desc:'민트 중 멘톨 함량이 가장 높은 종류. 식후 차로 가장 많이 마십니다.', use:'민트차, 초콜릿 디저트, 시럽. 생잎을 손바닥으로 한 번 두드려 넣으면 향이 확 올라옵니다.', grow:'땅속줄기로 사방에 번지므로 단독 화분에 심으세요. 물을 좋아해 흙이 바싹 마르면 잎 끝이 탑니다.', caution:'역류성 식도염이 있으면 증상이 심해질 수 있습니다. 페퍼민트 오일을 영유아 얼굴 가까이에 바르지 마세요.', pair:['초콜릿','레몬','꿀','녹차'], fig:{body:'opp', n:6, L:.17, w:.42, s:.6, leaf:'leaf-dark', fl:'spike', fc:'fl-lilac'}},
+ {id:'spearmint', ko:'스피어민트', en:'Spearmint', la:'Mentha spicata', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'유럽·서아시아', tags:['요리','차'], sun:2, water:3, diff:1, winter:'영하 20℃까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9,10], bloom:[7,8], prop:'씨앗, 꺾꽂이, 포기나누기', aroma:'멘톨이 적고 부드럽고 단 향', desc:'껌과 치약의 그 민트 맛. 페퍼민트보다 순해서 요리에 더 잘 어울립니다.', use:'모히토, 타불레, 양고기 민트 소스, 요거트 소스, 모로코식 민트티.', grow:'페퍼민트와 같습니다. 다른 민트와 같은 화분에 심으면 서로 섞여 향이 흐려집니다.', caution:'', pair:['라임','양고기','오이','요거트'], fig:{body:'opp', n:6, L:.17, w:.36, s:.55, leaf:'leaf', fl:'spike', fc:'fl-pink'}},
+ {id:'applemint', ko:'애플민트', en:'Apple Mint', la:'Mentha suaveolens', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'남유럽·서유럽', tags:['차','요리'], sun:2, water:2, diff:1, winter:'영하 20℃까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9,10], bloom:[7,8,9], prop:'꺾꽂이, 포기나누기, 씨앗', aroma:'사과를 닮은 은은하고 달콤한 향', desc:'잎이 둥글고 보송한 솜털이 있는 민트. 카페 음료 장식으로 가장 흔히 봅니다.', use:'과일 펀치, 에이드, 디저트 장식, 순한 민트차.', grow:'민트 중 가장 튼튼한 편. 한여름 직사광선이 너무 강하면 반그늘로 옮겨 주세요.', caution:'', pair:['사과','딸기','레몬','탄산수'], fig:{body:'opp', n:6, L:.15, w:.72, s:.3, leaf:'leaf-grey', fl:'spike', fc:'fl-white'}},
+ {id:'rosemary', ko:'로즈마리', en:'Rosemary', la:'Salvia rosmarinus', fam:'꿀풀과', famLa:'Lamiaceae', life:'늘푸른 떨기나무', origin:'지중해 연안', tags:['요리','아로마'], sun:3, water:1, diff:2, winter:'영하 5~10℃ 아래에서 얼어 죽기 쉽습니다. 중부 지방은 실내 창가에서 겨울을 나세요.', sow:[], harv:[1,2,3,4,5,6,7,8,9,10,11,12], bloom:[2,3,4,5], prop:'꺾꽂이 (씨앗은 발아가 느리고 고르지 않음)', aroma:'솔잎과 장뇌가 섞인 시원하고 진한 향', desc:'예전 학명은 Rosmarinus officinalis. 2017년 세이지 속(Salvia)으로 옮겨졌습니다.', use:'양고기·돼지고기 구이, 감자 오븐 구이, 포카치아, 올리브오일 인퓨즈.', grow:'가장 흔한 실패 원인은 과습입니다. 화분 흙이 속까지 마른 뒤 물을 주고, 바람이 잘 통하게 두세요.', caution:'요리에 쓰는 양은 괜찮지만, 임신 중에는 약용량(추출물·오일)을 피하세요.', pair:['양고기','감자','마늘','레몬','올리브'], fig:{body:'opp', n:13, L:.1, w:.13, s:0, leaf:'leaf-dark', fl:'dots', fc:'fl-blue'}},
+ {id:'lavender', ko:'라벤더', en:'English Lavender', la:'Lavandula angustifolia', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이 작은 떨기나무', origin:'지중해 연안', tags:['아로마','차'], sun:3, water:1, diff:2, winter:'배수가 좋으면 영하 15℃ 안팎까지 버팁니다. 젖은 채로 얼면 죽습니다.', sow:[3,4], harv:[6,7], bloom:[6,7], prop:'꺾꽂이, 씨앗', aroma:'맑은 꽃향, 끝에 약간 쌉싸름함', desc:'잉글리시 라벤더는 라벤더 중 추위에 강하고 향이 달아 요리와 차에도 씁니다.', use:'향주머니, 베개 속, 차 블렌드, 쿠키·레모네이드에 아주 조금.', grow:'장마철 과습이 최대 고비입니다. 꽃이 지면 꽃대와 잎 조금을 함께 잘라 모양을 잡아 주세요. 약알칼리 흙을 좋아합니다.', caution:'요리에는 아주 조금만(많으면 비누 맛). 에센셜 오일은 먹지 마세요.', pair:['꿀','레몬','블루베리','홍차'], fig:{body:'opp', n:6, L:.12, w:.12, s:0, leaf:'leaf-grey', span:.45, fl:'spike', fc:'fl-purple', stems:3}},
+ {id:'thyme', ko:'타임', en:'Common Thyme', la:'Thymus vulgaris', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이 작은 떨기나무', origin:'지중해 연안', tags:['요리','약용'], sun:3, water:1, diff:2, winter:'영하 15℃ 정도까지 노지 월동합니다.', sow:[3,4], harv:[5,6,7,8,9,10], bloom:[5,6], prop:'꺾꽂이, 포기나누기, 씨앗', aroma:'따뜻하고 살짝 매운 흙내음', desc:'잎이 쌀알만큼 작지만 향은 진합니다. 오래 끓여도 향이 잘 살아남는 몇 안 되는 허브입니다.', use:'스튜, 수프, 로스트 치킨, 부케가르니, 버섯 볶음.', grow:'건조하고 척박한 흙에서 향이 더 진해집니다. 꽃이 진 뒤 3분의 1 정도 잘라 주면 줄기가 목질화되는 걸 늦출 수 있습니다.', caution:'', pair:['닭고기','버섯','토마토','레몬','마늘'], fig:{body:'opp', n:11, L:.055, w:.45, s:0, leaf:'leaf-grey', fl:'dots', fc:'fl-pink', stems:3}},
+ {id:'oregano', ko:'오레가노', en:'Oregano', la:'Origanum vulgare', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'유럽·지중해', tags:['요리'], sun:3, water:1, diff:1, winter:'영하 20℃까지 노지 월동합니다.', sow:[4,5], harv:[6,7,8,9], bloom:[7,8,9], prop:'씨앗, 꺾꽂이, 포기나누기', aroma:'쌉싸름하고 강한 향. 말리면 오히려 더 진해짐', desc:'피자 허브. 생잎보다 말린 잎을 더 많이 쓰는 드문 허브입니다.', use:'피자, 토마토 소스, 그리스 샐러드, 구운 채소.', grow:'꽃이 피기 직전에 수확하면 향이 가장 진합니다. 거꾸로 매달아 그늘에서 말리세요.', caution:'', pair:['토마토','페타 치즈','올리브','레몬'], fig:{body:'opp', n:6, L:.12, w:.7, s:0, leaf:'leaf', fl:'dots', fc:'fl-pink', stems:2}},
+ {id:'marjoram', ko:'마조람', en:'Sweet Marjoram', la:'Origanum majorana', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이 (국내에선 한해살이로 기름)', origin:'지중해·서아시아', tags:['요리'], sun:3, water:2, diff:2, winter:'0℃ 아래에서 고사합니다. 실내로 들이거나 매년 새로 심으세요.', sow:[4,5], harv:[6,7,8,9], bloom:[7,8,9], prop:'씨앗, 꺾꽂이', aroma:'오레가노보다 달고 꽃향이 섞인 순한 향', desc:'오레가노의 사촌. 향이 섬세해서 요리 마지막에 넣습니다.', use:'소시지, 달걀 요리, 감자 수프, 콩 요리.', grow:'씨앗이 아주 작으니 흙을 덮지 말고 눌러만 주세요.', caution:'', pair:['달걀','감자','콩','소시지'], fig:{body:'opp', n:7, L:.09, w:.6, s:0, leaf:'leaf-grey', fl:'dots', fc:'fl-white', stems:2}},
+ {id:'sage', ko:'세이지', en:'Common Sage', la:'Salvia officinalis', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이 작은 떨기나무', origin:'지중해 연안', tags:['요리','약용'], sun:3, water:1, diff:2, winter:'영하 15℃ 정도까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9,10], bloom:[5,6], prop:'꺾꽂이, 씨앗', aroma:'쌉쌀하고 묵직한 흙향, 살짝 장뇌', desc:'벨벳 같은 회녹색 잎. 기름진 고기와 버터의 느끼함을 잡아 줍니다.', use:'버터 세이지 소스, 뇨키, 돼지고기, 소시지, 칠면조 속.', grow:'과습에 약합니다. 3~4년 지나면 줄기가 나무처럼 굳으니 꺾꽂이로 새 포기를 만들어 두세요.', caution:'투존 성분이 있어 임신·수유 중이거나 오랜 기간 많이 먹는 건 피하세요.', pair:['버터','돼지고기','호박','파스타'], fig:{body:'opp', n:4, L:.22, w:.36, s:.15, leaf:'leaf-grey', fl:'spike', fc:'fl-purple'}},
+ {id:'lemonbalm', ko:'레몬밤', en:'Lemon Balm', la:'Melissa officinalis', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'남유럽·서아시아', tags:['차','약용'], sun:2, water:2, diff:1, winter:'영하 20℃까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9,10], bloom:[6,7,8], prop:'씨앗(떨어진 씨로도 잘 번짐), 포기나누기, 꺾꽂이', aroma:'상큼한 레몬향, 민트 같은 부드러움', desc:'민트를 닮은 잎에서 레몬향이 납니다. 긴장을 풀어 주는 차로 오래 써 왔습니다.', use:'저녁 허브차, 레모네이드, 과일 샐러드, 생선 요리 마무리.', grow:'반그늘에서도 잘 자랍니다. 꽃이 피면 향이 약해지니 꽃대를 잘라 주세요.', caution:'갑상선 기능 저하증 약을 먹는 중이면 오래 마시기 전에 의사와 상의하세요.', pair:['꿀','레몬','복숭아','캐모마일'], fig:{body:'opp', n:5, L:.17, w:.66, s:.5, leaf:'leaf', fl:'none'}},
+ {id:'chamomile', ko:'캐모마일', en:'German Chamomile', la:'Matricaria chamomilla', fam:'국화과', famLa:'Asteraceae', life:'한해살이', origin:'유럽·서아시아', tags:['차','약용'], sun:3, water:2, diff:1, winter:'가을에 뿌리면 어린 포기로 겨울을 나고 이른 봄에 꽃이 핍니다.', sow:[3,4,9,10], harv:[5,6,7], bloom:[5,6,7], prop:'씨앗 (흙을 덮지 않음, 빛을 받아야 발아)', aroma:'사과를 닮은 달콤한 꽃향', desc:'잠들기 전 차의 대명사. 차로 쓰는 건 잎이 아니라 꽃입니다.', use:'꽃을 따서 그늘에 말린 뒤 차로. 우유와 꿀을 넣은 캐모마일 라떼도 좋습니다.', grow:'꽃이 활짝 피었을 때 날마다 따 주면 계속 피어납니다.', caution:'돼지풀·국화 같은 국화과 식물에 알레르기가 있으면 피하세요.', pair:['꿀','레몬밤','라벤더','우유'], fig:{body:'feather', n:4, leaf:'leaf', fl:'daisy', fc:'fl-white', cc:'fl-yellow'}},
+ {id:'parsley', ko:'파슬리', en:'Curly Parsley', la:'Petroselinum crispum', fam:'산형과', famLa:'Apiaceae', life:'두해살이', origin:'지중해 연안', tags:['요리'], sun:2, water:2, diff:2, winter:'영하 10℃ 정도까지 노지 월동합니다. 이듬해 꽃이 피면 수명이 다합니다.', sow:[3,4,5,9], harv:[5,6,7,8,9,10,11], bloom:[6,7], prop:'씨앗 (발아까지 2~4주, 하룻밤 물에 불리면 빨라짐)', aroma:'싱그러운 풀향, 약간 쌉쌀함', desc:'접시 장식으로만 보기엔 아까운 허브. 이탈리안 파슬리(잎이 평평한 종류)가 향이 더 진합니다.', use:'타불레, 치미추리, 그레몰라타, 수프·스튜 마무리.', grow:'바깥쪽 큰 잎부터 밑동째 따세요. 가운데 새순을 남겨야 계속 자랍니다.', caution:'잎은 괜찮지만 임신 중에 씨앗이나 오일을 많이 먹는 건 피하세요.', pair:['레몬','마늘','올리브오일','생선'], fig:{body:'basal', n:7, leaf:'pinna', lc:'leaf-dark', fl:'none'}},
+ {id:'coriander', ko:'고수', en:'Coriander / Cilantro', la:'Coriandrum sativum', fam:'산형과', famLa:'Apiaceae', life:'한해살이', origin:'지중해·서아시아', tags:['요리'], sun:2, water:2, diff:2, winter:'서늘한 날씨를 좋아해 봄·가을 재배가 수월합니다. 여름엔 금방 꽃대가 섭니다.', sow:[3,4,9,10], harv:[4,5,6,10,11], bloom:[6,7], prop:'씨앗 (둥근 씨를 살짝 눌러 반으로 쪼개 뿌리면 발아가 잘 됨)', aroma:'시트러스 같은 상큼함. 유전자(OR6A2)에 따라 비누 맛으로 느끼는 사람도 있음', desc:'잎은 고수(실란트로), 씨앗은 코리앤더라는 향신료가 됩니다. 한 식물에서 맛이 전혀 다른 두 재료가 나옵니다.', use:'쌀국수, 타코, 똠얌, 살사. 씨앗은 커리와 피클 향신료로.', grow:'뿌리가 곧게 뻗어 옮겨심기를 싫어합니다. 화분에 바로 뿌리고 2~3주 간격으로 나눠 뿌리면 오래 먹을 수 있습니다.', caution:'', pair:['라임','고추','쌀국수','아보카도'], fig:{body:'basal', n:7, leaf:'pinna', lc:'leaf', fl:'umbel', fc:'fl-white'}},
+ {id:'dill', ko:'딜', en:'Dill', la:'Anethum graveolens', fam:'산형과', famLa:'Apiaceae', life:'한해살이', origin:'서아시아·지중해', tags:['요리'], sun:3, water:2, diff:2, winter:'추위에 약합니다. 봄이나 초가을에 뿌리세요.', sow:[4,5,9], harv:[5,6,7,8], bloom:[7,8], prop:'씨앗 (옮겨심기를 싫어해 직접 뿌리기)', aroma:'상쾌하고 살짝 아니스 같은 단향', desc:'깃털처럼 가는 잎. 북유럽과 동유럽 요리에서 빠지지 않습니다.', use:'연어 요리, 오이 피클, 감자 샐러드, 차지키 소스.', grow:'키가 1m 가까이 자라 바람에 쓰러지니 지지대를 세워 주세요. 펜넬과 가까이 심으면 교잡됩니다.', caution:'', pair:['연어','오이','감자','요거트'], fig:{body:'feather', n:2, leaf:'leaf', fl:'umbel', fc:'fl-yellow', tall:1}},
+ {id:'fennel', ko:'펜넬', en:'Fennel', la:'Foeniculum vulgare', fam:'산형과', famLa:'Apiaceae', life:'여러해살이', origin:'지중해 연안', tags:['요리','차','약용'], sun:3, water:2, diff:2, winter:'영하 10℃ 정도까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9,10], bloom:[7,8,9], prop:'씨앗', aroma:'감초를 닮은 달콤한 아니스 향', desc:'잎, 씨앗, 꽃가루까지 다 씁니다. 밑동이 굵은 품종은 플로렌스 펜넬이라는 채소로 따로 기릅니다.', use:'생선 요리, 씨앗은 식후 입가심과 소화를 돕는 차. 인도 식당의 계산대 옆 씨앗이 바로 이것입니다.', grow:'딜과 교잡되니 떨어뜨려 심으세요. 다른 채소의 성장을 방해한다고 알려져 따로 두는 편이 좋습니다.', caution:'', pair:['생선','오렌지','돼지고기','올리브'], fig:{body:'feather', n:3, leaf:'leaf-grey', fl:'umbel', fc:'fl-yellow', tall:1}},
+ {id:'chive', ko:'차이브', en:'Chives', la:'Allium schoenoprasum', fam:'수선화과', famLa:'Amaryllidaceae', life:'여러해살이', origin:'유럽·아시아 온대', tags:['요리','식용꽃'], sun:2, water:2, diff:1, winter:'영하 30℃에도 견딜 만큼 추위에 강합니다.', sow:[3,4,9], harv:[4,5,6,7,8,9,10], bloom:[5,6], prop:'씨앗, 포기나누기', aroma:'순한 파·양파 향', desc:'쪽파보다 가늘고 순한 서양 파. 보랏빛 공 모양 꽃도 먹을 수 있습니다.', use:'오믈렛, 사워크림 딥, 감자 요리, 크림치즈. 꽃은 샐러드에 흩뿌립니다.', grow:'밑동에서 3cm 정도 남기고 가위로 자르면 금방 다시 자랍니다. 3년에 한 번 포기를 나눠 주세요.', caution:'', pair:['달걀','감자','사워크림','연어'], fig:{body:'tube', n:11, leaf:'leaf', fl:'pom', fc:'fl-lilac'}},
+ {id:'lemongrass', ko:'레몬그라스', en:'Lemongrass', la:'Cymbopogon citratus', fam:'벼과', famLa:'Poaceae', life:'여러해살이 (열대)', origin:'열대 아시아', tags:['요리','차','아로마'], sun:3, water:3, diff:2, winter:'5℃ 아래에서 피해를 입습니다. 가을에 화분으로 옮겨 실내에서 겨울을 나세요.', sow:[], harv:[7,8,9,10], bloom:[], prop:'포기나누기 (마트에서 산 줄기를 물에 꽂아도 뿌리가 남)', aroma:'레몬 껍질 같은 시트랄 향', desc:'풀처럼 생긴 허브. 동남아 요리의 상큼한 향은 대부분 이 줄기에서 나옵니다.', use:'똠얌꿍, 그린커리, 사테 양념, 허브차. 흰 밑동을 두드려 넣고 먹기 전에 건져냅니다.', grow:'따뜻하고 습한 걸 좋아해 여름에 쑥쑥 자랍니다. 잎 가장자리가 날카로우니 장갑을 끼세요.', caution:'', pair:['코코넛밀크','라임','생강','고추'], fig:{body:'grass', n:13, leaf:'leaf'}},
+ {id:'lemonverbena', ko:'레몬버베나', en:'Lemon Verbena', la:'Aloysia citrodora', fam:'마편초과', famLa:'Verbenaceae', life:'잎 지는 떨기나무', origin:'남아메리카 (아르헨티나·칠레)', tags:['차','아로마'], sun:3, water:2, diff:2, winter:'0℃ 아래에서 피해를 입습니다. 실내로 들이면 겨울에 잎을 떨구고 쉬다가 봄에 새잎이 납니다.', sow:[], harv:[6,7,8,9], bloom:[7,8,9], prop:'꺾꽂이', aroma:'허브 중 가장 진하고 깨끗한 레몬향', desc:'잎을 스치기만 해도 레몬 사탕 같은 향이 납니다. 프랑스에서는 베르벤이라는 이름의 식후차로 유명합니다.', use:'허브차, 디저트 시럽, 아이스크림, 레모네이드.', grow:'잎이 줄기 한 마디에 세 장씩 돌려납니다. 봄에 새순이 늦게 나와도 죽은 게 아니니 기다려 주세요.', caution:'', pair:['복숭아','딸기','꿀','홍차'], fig:{body:'opp', n:6, L:.2, w:.26, s:.1, leaf:'leaf', fl:'dots', fc:'fl-white'}},
+ {id:'stevia', ko:'스테비아', en:'Stevia', la:'Stevia rebaudiana', fam:'국화과', famLa:'Asteraceae', life:'여러해살이 (국내에선 한해살이로 기름)', origin:'남아메리카 (파라과이)', tags:['차'], sun:3, water:2, diff:2, winter:'0℃ 아래에서 고사합니다. 실내 월동하거나 꺾꽂이로 포기를 남겨 두세요.', sow:[4,5], harv:[7,8,9], bloom:[9,10], prop:'꺾꽂이 (씨앗은 발아율이 낮음)', aroma:'설탕의 수십 배 단맛, 뒷맛이 약간 쌉쌀함', desc:'잎 한 장을 씹으면 놀랄 만큼 답니다. 천연 감미료 스테비오사이드의 원료입니다.', use:'차에 생잎 한두 장, 말린 잎 가루를 감미료로.', grow:'낮이 짧아지면 꽃이 피는데, 꽃이 피기 직전에 잎의 단맛이 가장 강합니다.', caution:'', pair:['홍차','허브차','레몬'], fig:{body:'opp', n:7, L:.12, w:.34, s:.35, leaf:'leaf', fl:'dots', fc:'fl-white'}},
+ {id:'rosegeranium', ko:'로즈제라늄', en:'Rose Geranium', la:'Pelargonium graveolens', fam:'쥐손이풀과', famLa:'Geraniaceae', life:'여러해살이', origin:'남아프리카', tags:['아로마','요리'], sun:3, water:1, diff:1, winter:'5℃ 이상인 실내에서 겨울을 나세요.', sow:[], harv:[1,2,3,4,5,6,7,8,9,10,11,12], bloom:[5,6,7], prop:'꺾꽂이', aroma:'장미와 레몬이 섞인 진한 향', desc:'장미 오일 대용으로 쓰일 만큼 장미향이 강합니다. 깊게 갈라진 잎이 특징입니다.', use:'잎을 설탕이나 잼에 넣어 향을 입힌 뒤 건져냅니다. 아로마 오일 원료.', grow:'건조에 강하고 과습에 약합니다. 웃자라면 잘라서 그 가지로 꺾꽂이하세요.', caution:'잎은 향만 입히고 먹지 않습니다.', pair:['딸기','설탕','크림','홍차'], fig:{body:'basal', n:6, leaf:'palm', lc:'leaf', fl:'cup', fc:'fl-pink'}},
+ {id:'borage', ko:'보리지', en:'Borage', la:'Borago officinalis', fam:'지치과', famLa:'Boraginaceae', life:'한해살이', origin:'지중해 연안', tags:['식용꽃','요리'], sun:3, water:2, diff:1, winter:'떨어진 씨로 이듬해 저절로 다시 납니다.', sow:[4,5], harv:[6,7,8,9], bloom:[6,7,8,9], prop:'씨앗', aroma:'오이 같은 시원한 맛', desc:'고개 숙인 파란 별 모양 꽃. 꿀벌이 아주 좋아해 텃밭 동반 식물로도 심습니다.', use:'꽃을 얼음에 얼려 음료에, 샐러드와 케이크 장식, 핌스 칵테일.', grow:'뿌리가 깊어 옮겨심기를 싫어합니다. 줄기와 잎에 거친 털이 있어 장갑을 끼고 다루세요.', caution:'잎에 피롤리지딘 알칼로이드가 있어 자주·많이 먹지 마세요. 간 질환이 있거나 임신 중이면 먹지 않습니다.', pair:['오이','탄산수','딸기','샐러드'], fig:{body:'alt', n:5, L:.2, w:.42, s:0, leaf:'leaf-grey', fl:'star', fc:'fl-blue'}},
+ {id:'nasturtium', ko:'한련화', en:'Nasturtium', la:'Tropaeolum majus', fam:'한련과', famLa:'Tropaeolaceae', life:'한해살이', origin:'남아메리카 안데스', tags:['식용꽃','요리'], sun:3, water:2, diff:1, winter:'서리에 약합니다. 늦서리가 끝난 뒤 심으세요.', sow:[4,5], harv:[6,7,8,9,10], bloom:[6,7,8,9,10], prop:'씨앗 (하룻밤 불려 뿌리기)', aroma:'물냉이나 겨자처럼 톡 쏘는 매운맛', desc:'연잎처럼 둥근 잎과 주황 꽃. 잎, 꽃, 씨앗을 모두 먹습니다.', use:'꽃과 잎은 샐러드에, 덜 익은 씨앗은 식초에 절여 케이퍼 대용으로.', grow:'거름이 많으면 잎만 무성하고 꽃이 적습니다. 척박한 흙이 오히려 낫습니다.', caution:'', pair:['샐러드 채소','크림치즈','달걀'], fig:{body:'basal', n:6, leaf:'round', lc:'leaf', fl:'cup', fc:'fl-orange'}},
+ {id:'calendula', ko:'카렌듈라', en:'Pot Marigold', la:'Calendula officinalis', fam:'국화과', famLa:'Asteraceae', life:'한해살이', origin:'지중해 연안', tags:['식용꽃','약용'], sun:3, water:2, diff:1, winter:'가을에 뿌리면 남부에서는 겨울을 나고 이른 봄에 꽃이 핍니다.', sow:[3,4,9], harv:[5,6,7,8,9,10], bloom:[5,6,7,8,9,10], prop:'씨앗', aroma:'은은하고 약간 쌉쌀한 맛', desc:'금잔화. 꽃잎이 샤프란 대용으로 쓰일 만큼 색이 진합니다.', use:'꽃잎을 샐러드나 밥에 넣어 색을 내고, 말린 꽃을 오일에 우려 피부용 연고를 만듭니다.', grow:'시든 꽃을 바로 따 주면 서리 전까지 계속 핍니다.', caution:'국화과 알레르기가 있으면 주의하세요.', pair:['샐러드','쌀','버터'], fig:{body:'alt', n:5, L:.17, w:.3, s:0, leaf:'leaf', fl:'daisy', fc:'fl-orange', cc:'fl-orange'}},
+ {id:'echinacea', ko:'에키네시아', en:'Purple Coneflower', la:'Echinacea purpurea', fam:'국화과', famLa:'Asteraceae', life:'여러해살이', origin:'북아메리카 동부', tags:['약용','차'], sun:3, water:1, diff:1, winter:'영하 30℃에도 견딥니다.', sow:[3,4], harv:[7,8,9,10], bloom:[6,7,8,9], prop:'씨앗, 포기나누기', aroma:'향은 약하고, 뿌리를 씹으면 혀가 얼얼함', desc:'꽃잎이 아래로 처지고 가운데가 솔방울처럼 솟은 꽃. 감기철 차로 알려져 있습니다.', use:'꽃과 잎, 뿌리를 말려 차로. 정원에서는 나비와 벌을 부르는 꽃으로 인기입니다.', grow:'씨앗으로 키우면 2년째부터 꽃이 핍니다. 가뭄에 강해 손이 거의 가지 않습니다.', caution:'국화과 알레르기, 자가면역 질환이 있거나 면역억제제를 먹는 중이면 의사와 상의하세요.', pair:['레몬','생강','꿀'], fig:{body:'alt', n:4, L:.2, w:.3, s:.15, leaf:'leaf-dark', fl:'cone', fc:'fl-pink', cc:'fl-orange'}},
+ {id:'tarragon', ko:'타라곤', en:'French Tarragon', la:'Artemisia dracunculus', fam:'국화과', famLa:'Asteraceae', life:'여러해살이', origin:'유라시아', tags:['요리'], sun:3, water:1, diff:3, winter:'영하 15℃ 정도까지 노지 월동하지만 장마철 과습에 약합니다.', sow:[], harv:[5,6,7,8,9], bloom:[], prop:'꺾꽂이, 포기나누기 (프렌치 타라곤은 씨앗이 거의 맺히지 않음)', aroma:'감초를 닮은 달콤한 아니스 향', desc:'프랑스 요리의 네 가지 기본 허브(핀제르브) 중 하나. 씨앗으로 파는 러시안 타라곤은 향이 훨씬 약합니다.', use:'베아르네즈 소스, 닭고기 크림 요리, 타라곤 식초, 달걀 요리.', grow:'모종을 구해야 해서 구하기부터 까다롭습니다. 물빠짐 좋은 흙에 심고 2~3년마다 포기를 나눠 젊게 유지하세요.', caution:'', pair:['닭고기','달걀','버터','식초'], fig:{body:'alt', n:12, L:.15, w:.1, s:0, leaf:'leaf-dark', fl:'none', stems:2}},
+ {id:'bay', ko:'월계수', en:'Bay Laurel', la:'Laurus nobilis', fam:'녹나무과', famLa:'Lauraceae', life:'늘푸른 큰키나무 (화분에선 관목)', origin:'지중해 연안', tags:['요리'], sun:3, water:2, diff:2, winter:'영하 5℃ 아래에서 피해를 입습니다. 중부 지방은 실내에서 겨울을 나세요.', sow:[], harv:[1,2,3,4,5,6,7,8,9,10,11,12], bloom:[3,4], prop:'꺾꽂이 (뿌리 내리는 데 몇 달 걸림)', aroma:'말리면 깊어지는 은은하고 따뜻한 향', desc:'승리의 월계관을 만든 나무. 생잎보다 며칠 말린 잎이 쓴맛이 빠지고 향이 좋습니다.', use:'스튜, 카레, 토마토 소스, 수육과 피클의 잡내 잡기.', grow:'천천히 자라서 화분에서 오래 기를 수 있습니다. 잎에 깍지벌레가 잘 생기니 가끔 뒷면을 살펴보세요.', caution:'잎은 질기고 가장자리가 날카로워 먹지 말고 건져냅니다.', pair:['토마토','소고기','콩','돼지고기'], fig:{body:'alt', n:8, L:.2, w:.33, s:0, leaf:'leaf-dark', fl:'none', woody:1}},
+ {id:'perilla', ko:'들깨 (깻잎)', en:'Perilla', la:'Perilla frutescens', fam:'꿀풀과', famLa:'Lamiaceae', life:'한해살이', origin:'동아시아', kr:1, tags:['요리'], sun:3, water:3, diff:1, winter:'한해살이입니다. 떨어진 씨로 이듬해 저절로 나기도 합니다.', sow:[4,5], harv:[6,7,8,9], bloom:[8,9], prop:'씨앗', aroma:'고소하고 시원한, 깻잎만의 향', desc:'우리 식탁에서 가장 흔한 허브. 외국에서는 Korean perilla로 따로 부릅니다.', use:'쌈, 깻잎 장아찌, 깻잎전, 매운탕. 씨앗으로는 들기름과 들깨가루를 얻습니다.', grow:'낮이 짧아지는 8월 말이면 꽃대가 서고 잎이 작아집니다. 순을 계속 따 주면 곁가지가 늘어납니다.', caution:'', pair:['삼겹살','간장','고추','생선'], fig:{body:'opp', n:4, L:.24, w:.78, s:.45, leaf:'leaf', fl:'spike', fc:'fl-white'}},
+ {id:'shiso', ko:'차조기', en:'Shiso', la:'Perilla frutescens var. crispa', fam:'꿀풀과', famLa:'Lamiaceae', life:'한해살이', origin:'동아시아', kr:1, tags:['요리','약용'], sun:2, water:3, diff:1, winter:'한해살이입니다.', sow:[4,5], harv:[6,7,8,9], bloom:[8,9,10], prop:'씨앗 (빛을 받아야 발아하니 흙을 얇게)', aroma:'깻잎보다 맑고, 시나몬과 민트가 섞인 향', desc:'깻잎의 변종. 붉은 잎은 자소엽이라는 한약재이고, 일본에서는 시소로 부릅니다.', use:'회와 초밥에 곁들임, 붉은 잎으로 우메보시와 자소 주스 물들이기.', grow:'들깨와 가까이 심으면 교잡되어 향이 섞입니다.', caution:'', pair:['회','매실','오이','두부'], fig:{body:'opp', n:4, L:.22, w:.72, s:.7, leaf:'leaf-purple', fl:'spike', fc:'fl-pink'}},
+ {id:'mugwort', ko:'쑥', en:'Korean Mugwort', la:'Artemisia princeps', fam:'국화과', famLa:'Asteraceae', life:'여러해살이', origin:'한국·일본·중국', kr:1, tags:['요리','차','약용'], sun:3, water:2, diff:1, winter:'영하 30℃에도 견딥니다.', sow:[], harv:[3,4,5,6], bloom:[7,8,9], prop:'땅속줄기, 포기나누기', aroma:'쌉싸름하고 진한 풀향', desc:'봄을 알리는 우리 허브. 잎 뒷면이 하얀 솜털로 덮여 있습니다.', use:'쑥떡, 쑥국, 쑥차, 쑥버무리. 단오 무렵 거둔 쑥을 말려 약쑥으로 씁니다.', grow:'번식력이 아주 강해 텃밭에 심으면 번집니다. 어린 순을 먹으려면 이른 봄에 거두세요.', caution:'임신 중 많이 먹는 건 피하세요. 국화과 알레르기가 있으면 주의. 길가나 공장 근처 쑥은 캐지 마세요.', pair:['찹쌀','콩가루','된장','조개'], fig:{body:'alt', n:6, L:.2, w:.55, s:0, lobed:1, leaf:'leaf-grey', fl:'none'}},
+ {id:'agastache', ko:'배초향 (방아)', en:'Korean Mint', la:'Agastache rugosa', fam:'꿀풀과', famLa:'Lamiaceae', life:'여러해살이', origin:'한국·동아시아 자생', kr:1, tags:['요리','차'], sun:3, water:2, diff:1, winter:'영하 20℃까지 노지 월동합니다.', sow:[4,5], harv:[5,6,7,8,9], bloom:[7,8,9], prop:'씨앗 (떨어진 씨로 잘 번짐), 포기나누기', aroma:'박하와 아니스 사이의 진하고 달큰한 향', desc:'경상도에서 방아잎이라 부르는 우리 토종 허브. 비린내를 잡는 데 탁월합니다.', use:'추어탕, 매운탕, 방아잎 장떡, 된장찌개.', grow:'보라색 꽃 이삭에 벌과 나비가 많이 모입니다. 손이 거의 가지 않는 튼튼한 허브입니다.', caution:'', pair:['추어탕','생선','된장','부추'], fig:{body:'opp', n:5, L:.18, w:.6, s:.45, leaf:'leaf', fl:'spike', fc:'fl-purple'}},
+ {id:'roselle', ko:'히비스커스 (로젤)', en:'Roselle', la:'Hibiscus sabdariffa', fam:'아욱과', famLa:'Malvaceae', life:'한해살이 (열대에선 여러해살이)', origin:'서아프리카', tags:['차'], sun:3, water:2, diff:3, winter:'추위에 아주 약합니다. 한해살이로 기릅니다.', sow:[4,5], harv:[10,11], bloom:[9,10], prop:'씨앗', aroma:'새콤한 크랜베리 같은 신맛', desc:'붉은 히비스커스 차는 꽃잎이 아니라 꽃이 진 뒤 부풀어 오른 붉은 꽃받침으로 만듭니다.', use:'히비스커스 차(뜨겁게, 차갑게), 시럽, 잼.', grow:'낮이 짧아져야 꽃이 피어 국내에선 수확이 늦습니다. 서리 전에 꽃받침을 거두려면 일찍 모종을 키우세요.', caution:'혈압약을 먹는 중이면 혈압이 더 내려갈 수 있어 의사와 상의하세요.', pair:['꿀','생강','시나몬','오렌지'], fig:{body:'alt', n:5, L:.17, w:.5, s:.2, lobed:1, leaf:'leaf-purple', fl:'cup', fc:'fl-red'}},
+];
+
+const TAGS = ['요리','차','아로마','약용','식용꽃'];
+const MONTHS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+const DIFF = {1:'쉬움',2:'보통',3:'까다로움'};
+const SUN = {3:'양지 (하루 6시간 이상)',2:'양지~반그늘',1:'반그늘'};
+const WATER = {1:'건조하게 (속흙까지 마르면)',2:'보통 (겉흙이 마르면)',3:'촉촉하게 (자주)'};
+HERBS.forEach((h,i)=>{ h.no = String(i+1).padStart(3,'0'); });
+
+/* ── storage ── */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+let favs = new Set(store.get('herb-favs', []));
+const state = { q:'', tags:new Set(), kr:false, fav:false, sun:0, diff:0, sort:'name' };
+
+/* ── botanical drawing ── */
+function tok(){ const cs = getComputedStyle(document.documentElement); const g = n => cs.getPropertyValue('--'+n).trim(); return {g, ink:g('ink'), sheet:g('sheet'), muted:g('muted')}; }
+function rng(seed){ let s = 0; for (const c of seed) s = (s*31 + c.charCodeAt(0)) >>> 0; return () => { s = (s*1664525 + 1013904223) >>> 0; return s/4294967296; }; }
+function alpha(c, a){ return 'color-mix(in srgb, '+c+' '+Math.round(a*100)+'%, transparent)'; }
+
+function leafShape(ctx, L, w, s, lobed){
+  const N = 48, pts = [];
+  for (let i=0;i<=N;i++){
+    const t = i/N;
+    let hw = L*w*.5*Math.pow(Math.sin(Math.PI*Math.pow(t,.78)),.85);
+    if (s>0 && t>.08 && t<.95){ const ph = (t*11)%1; hw *= 1 - s*.22*ph; }
+    if (lobed){ const ph = (t*4.5)%1; hw *= .55 + .45*Math.pow(Math.sin(Math.PI*ph),.6); }
+    pts.push([t*L, hw]);
+  }
+  ctx.beginPath(); ctx.moveTo(0,0);
+  pts.forEach(p=>ctx.lineTo(p[0],-p[1]));
+  for (let i=pts.length-1;i>=0;i--) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.closePath();
+}
+function drawLeaf(ctx, x, y, ang, L, w, s, col, ink, lobed){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  leafShape(ctx, L, w, s, lobed);
+  ctx.fillStyle = col; ctx.globalAlpha = .82; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = ink; ctx.lineWidth = .9; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(L*.92,0); ctx.lineWidth = .6; ctx.globalAlpha=.6; ctx.stroke();
+  if (L > 18 && w > .25){ for (let k=1;k<=4;k++){ const px = L*k/5.4; const vy = L*w*.3*Math.sin(Math.PI*k/5.4); ctx.beginPath(); ctx.moveTo(px,0); ctx.quadraticCurveTo(px+L*.06,-vy*.5,px+L*.12,-vy); ctx.moveTo(px,0); ctx.quadraticCurveTo(px+L*.06,vy*.5,px+L*.12,vy); ctx.stroke(); } }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+function stemPath(r, x0, y0, len, a0, bend){
+  const pts = []; let x=x0, y=y0, a=a0; const N=30;
+  for (let i=0;i<=N;i++){ pts.push({x,y,a}); a += (bend + (r()-.5)*.03); x += Math.cos(a)*len/N; y += Math.sin(a)*len/N; }
+  return pts;
+}
+function strokePts(ctx, pts, ink, w){ ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.strokeStyle=ink; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); }
+
+function drawFlower(ctx, kind, x, y, a, S, T, f, r){
+  const fc = T.g(f.fc||'fl-white'), cc = T.g(f.cc||'fl-yellow'), ink = T.ink;
+  ctx.lineWidth = .8; ctx.strokeStyle = ink;
+  if (kind==='daisy' || kind==='cone'){
+    const R = S*.055, n = kind==='cone'?13:16;
+    for (let i=0;i<n;i++){ const t = i/n*Math.PI*2; ctx.save(); ctx.translate(x,y); ctx.rotate(t);
+      ctx.beginPath(); ctx.ellipse(R*1.15, kind==='cone'?R*.35:0, R*.95, R*.28, kind==='cone'?.35:0, 0, Math.PI*2); ctx.fillStyle=fc; ctx.fill(); ctx.stroke(); ctx.restore(); }
+    ctx.beginPath(); ctx.arc(x,y,R*(kind==='cone'?.62:.48),0,Math.PI*2); ctx.fillStyle=cc; ctx.fill(); ctx.stroke();
+  } else if (kind==='star'){
+    const R = S*.05;
+    for (let i=0;i<5;i++){ const t = i/5*Math.PI*2 + a; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(t-.28)*R*.55, y+Math.sin(t-.28)*R*.55); ctx.lineTo(x+Math.cos(t)*R*1.25, y+Math.sin(t)*R*1.25); ctx.lineTo(x+Math.cos(t+.28)*R*.55, y+Math.sin(t+.28)*R*.55); ctx.closePath(); ctx.fillStyle=fc; ctx.fill(); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(x,y,R*.25,0,Math.PI*2); ctx.fillStyle=ink; ctx.fill();
+  } else if (kind==='cup'){
+    const R = S*.05;
+    for (let i=0;i<5;i++){ const t = i/5*Math.PI*2 + a; ctx.beginPath(); ctx.ellipse(x+Math.cos(t)*R*.75, y+Math.sin(t)*R*.75, R*.72, R*.52, t, 0, Math.PI*2); ctx.fillStyle=fc; ctx.globalAlpha=.92; ctx.fill(); ctx.globalAlpha=1; ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(x,y,R*.22,0,Math.PI*2); ctx.fillStyle=cc; ctx.fill();
+  } else if (kind==='pom'){
+    const R = S*.045;
+    for (let i=0;i<34;i++){ const t = r()*Math.PI*2, d = Math.sqrt(r())*R; ctx.beginPath(); ctx.ellipse(x+Math.cos(t)*d, y+Math.sin(t)*d, R*.22, R*.12, t, 0, Math.PI*2); ctx.fillStyle=fc; ctx.fill(); ctx.lineWidth=.5; ctx.stroke(); }
+  } else if (kind==='umbel'){
+    const R = S*.09, rays = 9;
+    for (let i=0;i<rays;i++){ const t = -Math.PI/2 + (i/(rays-1)-.5)*1.9; const ex = x+Math.cos(t)*R, ey = y+Math.sin(t)*R*.7;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.lineWidth=.6; ctx.stroke();
+      for (let k=0;k<6;k++){ ctx.beginPath(); ctx.arc(ex+(r()-.5)*R*.28, ey+(r()-.6)*R*.2, S*.007, 0, Math.PI*2); ctx.fillStyle=fc; ctx.fill(); ctx.lineWidth=.4; ctx.stroke(); } }
+  } else if (kind==='dots'){
+    for (let k=0;k<7;k++){ ctx.beginPath(); ctx.arc(x+(r()-.5)*S*.05, y+(r()-.5)*S*.04, S*.009, 0, Math.PI*2); ctx.fillStyle=fc; ctx.fill(); ctx.lineWidth=.5; ctx.stroke(); }
+  }
+}
+
+function drawPlant(cv, h){
+  const T = tok(), f = h.fig, r = rng(h.id);
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const W = cv.clientWidth || 260, H = cv.clientHeight || 280;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const S = Math.min(W, H*1.05), ink = T.ink;
+  const leafC = T.g(f.lc || f.leaf || 'leaf');
+  const bx = W/2, by = H*.95;
+
+  // mounting tape strips — 표본 고정 테이프
+  ctx.fillStyle = alpha(T.muted, .16);
+  ctx.save(); ctx.translate(bx-6, by-6); ctx.rotate(-.06); ctx.fillRect(-26,-5,52,10); ctx.restore();
+
+  if (f.body==='opp' || f.body==='alt'){
+    const stems = f.stems || (f.n>8?2:1);
+    for (let s=0;s<stems;s++){
+      const a0 = -Math.PI/2 + (stems===1?0:(s/(stems-1)-.5)*.5) + (r()-.5)*.08;
+      const len = H*(.78 - s*.04) * (f.tall?1:1);
+      const pts = stemPath(r, bx + (s-(stems-1)/2)*6, by, len, a0, (r()-.5)*.012);
+      strokePts(ctx, pts, ink, f.woody?2.2:1.4);
+      const span = f.span || .92, n = f.n;
+      for (let i=0;i<n;i++){
+        const t = .1 + (i/(Math.max(n-1,1)))*(span-.14);
+        const p = pts[Math.round(t*(pts.length-1))];
+        const scale = 1 - t*.45;
+        const L = S*f.L*scale*(stems>1?.85:1);
+        const sides = f.body==='opp' ? [1,-1] : [i%2?1:-1];
+        sides.forEach(sd=>{ const ang = p.a + sd*(Math.PI/2 - .55 + r()*.15); drawLeaf(ctx, p.x, p.y, ang, L, f.w, f.s||0, leafC, ink, f.lobed); });
+      }
+      const top = pts[pts.length-1];
+      if (f.fl==='spike'){
+        const sp = Math.round(pts.length*.2);
+        for (let k=0;k<6;k++){ const p = pts[pts.length-1-Math.round(k*sp/6)]; const rr = S*(.012+.004*(6-k)/6);
+          [-1,1].forEach(sd=>{ ctx.beginPath(); ctx.ellipse(p.x+sd*rr*1.1, p.y, rr, rr*.7, 0, 0, Math.PI*2); ctx.fillStyle=T.g(f.fc); ctx.fill(); ctx.lineWidth=.6; ctx.strokeStyle=ink; ctx.stroke(); }); }
+      } else if (f.fl && f.fl!=='none'){
+        drawFlower(ctx, f.fl, top.x, top.y, top.a, S, T, f, r);
+        if (f.fl==='dots'){ const p2 = pts[Math.round(pts.length*.82)]; drawFlower(ctx,'dots',p2.x+S*.05,p2.y,0,S,T,f,r); }
+      }
+    }
+  } else if (f.body==='basal'){
+    const n = f.n;
+    for (let i=0;i<n;i++){
+      const a = -Math.PI/2 + (i/(n-1)-.5)*1.7 + (r()-.5)*.12;
+      const len = H*(.42 + r()*.25) * (1 - Math.abs(i/(n-1)-.5)*.5);
+      const pts = stemPath(r, bx, by, len, a, (a+Math.PI/2)*.01);
+      strokePts(ctx, pts, ink, 1);
+      const e = pts[pts.length-1];
+      if (f.leaf==='round'){
+        const R = S*(.07+r()*.025);
+        ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, Math.PI*2); ctx.fillStyle=leafC; ctx.globalAlpha=.82; ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle=ink; ctx.lineWidth=.9; ctx.stroke();
+        ctx.lineWidth=.5; ctx.globalAlpha=.55; for (let k=0;k<9;k++){ const t=k/9*Math.PI*2; ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.x+Math.cos(t)*R*.9, e.y+Math.sin(t)*R*.9); ctx.stroke(); } ctx.globalAlpha=1;
+      } else if (f.leaf==='palm'){
+        const R = S*(.075+r()*.02);
+        ctx.beginPath(); for (let k=0;k<=120;k++){ const t=k/120*Math.PI*2; const rr = R*(.55+.45*Math.pow(Math.abs(Math.cos(t*2.5)),.6))*(1+.08*Math.sin(t*17)); const px=e.x+Math.cos(t)*rr, py=e.y+Math.sin(t)*rr; k?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath();
+        ctx.fillStyle=leafC; ctx.globalAlpha=.82; ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle=ink; ctx.lineWidth=.9; ctx.stroke();
+      } else { // pinna: trifoliate lobed leaflets
+        for (let k=-1;k<=1;k++){ const t = e.a + k*.75; const cx = e.x+Math.cos(t)*S*.04, cy = e.y+Math.sin(t)*S*.04, R = S*.034;
+          ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(cx,cy); ctx.lineWidth=.7; ctx.strokeStyle=ink; ctx.stroke();
+          ctx.beginPath(); for (let q=0;q<=90;q++){ const u=q/90*Math.PI*2; const rr = R*(.62+.38*Math.abs(Math.cos(u*1.5)))*(h.id==='parsley'?(1+.12*Math.sin(u*14)):1); const px=cx+Math.cos(u)*rr, py=cy+Math.sin(u)*rr; q?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath();
+          ctx.fillStyle=leafC; ctx.globalAlpha=.82; ctx.fill(); ctx.globalAlpha=1; ctx.lineWidth=.8; ctx.stroke(); }
+      }
+    }
+    if (f.fl && f.fl!=='none'){
+      const fl = f.fl==='umbel' ? 1 : 3;
+      for (let k=0;k<fl;k++){ const a = -Math.PI/2 + (k-(fl-1)/2)*.5; const pts = stemPath(r, bx, by, H*(f.fl==='umbel'?.8:.5+r()*.15), a, 0); strokePts(ctx, pts, ink, 1); const e = pts[pts.length-1]; drawFlower(ctx, f.fl, e.x, e.y, e.a, S, T, f, r); }
+    }
+  } else if (f.body==='feather'){
+    const n = f.n;
+    const branch = (x,y,a,len,d)=>{ const ex=x+Math.cos(a)*len, ey=y+Math.sin(a)*len; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(ex,ey); ctx.lineWidth = d===0?.9:.6; ctx.strokeStyle = d===0?ink:leafC; ctx.stroke();
+      if (d<2){ const m = d===0?7:5; for (let i=1;i<=m;i++){ const t=i/(m+1); const px=x+(ex-x)*t, py=y+(ey-y)*t; [-1,1].forEach(sd=>branch(px,py,a+sd*(.7+r()*.2),len*(d===0?.34:.42)*(1-t*.5),d+1)); } } };
+    for (let s=0;s<n;s++){
+      const a0 = -Math.PI/2 + (s/(Math.max(n-1,1))-.5)*.55;
+      const pts = stemPath(r, bx+(s-(n-1)/2)*5, by, H*(f.tall?.82:.68)*(1-Math.abs(s-(n-1)/2)*.08), a0, (r()-.5)*.01);
+      strokePts(ctx, pts, ink, 1.2);
+      for (let i=0;i<4;i++){ const p = pts[Math.round((.2+i*.17)*(pts.length-1))]; branch(p.x, p.y, p.a + (i%2?1:-1)*.7, S*.16*(1-i*.15), 0); }
+      const e = pts[pts.length-1]; drawFlower(ctx, f.fl, e.x, e.y, e.a, S, T, f, r);
+    }
+  } else if (f.body==='grass' || f.body==='tube'){
+    const n = f.n;
+    for (let i=0;i<n;i++){
+      const a = -Math.PI/2 + (i/(n-1)-.5)*(f.body==='grass'?1.1:.55) + (r()-.5)*.1;
+      const len = H*(f.body==='grass' ? .62+r()*.28 : .5+r()*.2);
+      const bend = (a+Math.PI/2)*(f.body==='grass'?.04:.008);
+      const pts = stemPath(r, bx+(i-(n-1)/2)*1.5, by, len, a, bend);
+      const wid = f.body==='grass' ? S*.016 : S*.011;
+      ctx.beginPath();
+      pts.forEach((p,k)=>{ const t=k/(pts.length-1), hw = wid*(1-t*.9); const px=p.x+Math.cos(p.a-Math.PI/2)*hw, py=p.y+Math.sin(p.a-Math.PI/2)*hw; k?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+      for (let k=pts.length-1;k>=0;k--){ const p=pts[k], t=k/(pts.length-1), hw = wid*(1-t*.9); ctx.lineTo(p.x+Math.cos(p.a+Math.PI/2)*hw, p.y+Math.sin(p.a+Math.PI/2)*hw); }
+      ctx.closePath(); ctx.fillStyle=leafC; ctx.globalAlpha=.8; ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle=ink; ctx.lineWidth=.7; ctx.stroke();
+      if (f.fl==='pom' && i%4===1){ const e = pts[pts.length-1]; drawFlower(ctx,'pom',e.x,e.y,e.a,S,T,f,r); }
+    }
+    if (f.body==='grass'){ ctx.beginPath(); ctx.ellipse(bx, by-H*.04, S*.05, H*.05, 0, 0, Math.PI*2); ctx.fillStyle=alpha(T.g('leaf-grey'),.5); ctx.fill(); ctx.strokeStyle=ink; ctx.lineWidth=.8; ctx.stroke(); }
+  }
+  // roots
+  ctx.strokeStyle = alpha(ink,.55); ctx.lineWidth=.6;
+  for (let i=0;i<7;i++){ const pts = stemPath(r, bx, by, H*.045+r()*H*.03, Math.PI/2+(r()-.5)*1.6, (r()-.5)*.05); strokePts(ctx, pts, alpha(ink,.5), .6); }
+}
+
+/* ── list rendering ── */
+const $ = s => document.querySelector(s);
+const grid = $('#grid');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const starSvg = '<svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.2l2.4 5 5.4.6-4 3.7 1.1 5.4L10 14.2l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" fill="currentColor" fill-opacity="var(--fo,0)" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+
+function haystack(h){ return [h.ko,h.en,h.la,h.fam,h.famLa,h.aroma,h.use,h.desc,h.tags.join(' '),h.pair.join(' '),h.kr?'우리 허브 토종':''].join(' ').toLowerCase(); }
+HERBS.forEach(h => h._hay = haystack(h));
+
+function filtered(){
+  const q = state.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let list = HERBS.filter(h =>
+    q.every(w => h._hay.includes(w)) &&
+    [...state.tags].every(t => h.tags.includes(t)) &&
+    (!state.kr || h.kr) && (!state.fav || favs.has(h.id)) &&
+    (!state.sun || (state.sun===3 ? h.sun===3 : h.sun<=2)) &&
+    (!state.diff || h.diff===state.diff));
+  const byName = (a,b) => a.ko.localeCompare(b.ko,'ko');
+  if (state.sort==='easy') list.sort((a,b)=> a.diff-b.diff || byName(a,b));
+  else if (state.sort==='family'){ const cnt = {}; HERBS.forEach(h=>cnt[h.fam]=(cnt[h.fam]||0)+1); list.sort((a,b)=> cnt[b.fam]-cnt[a.fam] || a.fam.localeCompare(b.fam,'ko') || byName(a,b)); }
+  else list.sort(byName);
+  return list;
+}
+
+function cardHTML(h){
+  return '<article class="sheet" tabindex="0" role="button" data-id="'+h.id+'" aria-label="'+esc(h.ko)+' 자세히 보기">'+
+    '<span class="acc">No. '+h.no+'</span>'+
+    '<button class="star" type="button" data-star="'+h.id+'" aria-pressed="'+favs.has(h.id)+'" aria-label="내 허브에 '+(favs.has(h.id)?'담김':'담기')+'" style="--fo:'+(favs.has(h.id)?1:0)+'">'+starSvg+'</button>'+
+    '<canvas data-draw="'+h.id+'"></canvas>'+
+    '<div class="label">'+
+      '<div class="ko">'+esc(h.ko)+'<small>'+esc(h.en)+'</small></div>'+
+      '<div class="la latin">'+esc(h.la)+'</div>'+
+      '<div class="fam">'+esc(h.fam)+' · '+esc(h.famLa)+'</div>'+
+      '<div class="meta">'+h.tags.map(t=>'<span class="tag">'+t+'</span>').join('')+(h.kr?'<span class="tag">우리 허브</span>':'')+'<span class="tag diff'+h.diff+'">'+DIFF[h.diff]+'</span></div>'+
+    '</div></article>';
+}
+
+function render(){
+  const list = filtered();
+  let html = '', lastFam = null;
+  list.forEach(h => {
+    if (state.sort==='family' && h.fam!==lastFam){ lastFam = h.fam; const n = list.filter(x=>x.fam===h.fam).length; html += '<div class="grouphead"><h3>'+esc(h.fam)+'</h3><span class="latin">'+esc(h.famLa)+'</span><span class="count">'+n+'종</span></div>'; }
+    html += cardHTML(h);
+  });
+  if (!list.length) html = '<div class="empty">조건에 맞는 허브가 없습니다.<br><button class="chip" type="button" id="reset">조건 모두 지우기</button></div>';
+  grid.innerHTML = html;
+  $('#count').textContent = list.length===HERBS.length ? '전체 '+HERBS.length+'종' : HERBS.length+'종 중 '+list.length+'종';
+  grid.querySelectorAll('canvas[data-draw]').forEach(cv => drawPlant(cv, HERBS.find(h=>h.id===cv.dataset.draw)));
+  const rb = $('#reset'); if (rb) rb.onclick = resetFilters;
+}
+
+function resetFilters(){
+  Object.assign(state, {q:'', kr:false, fav:false, sun:0, diff:0}); state.tags.clear();
+  $('#q').value=''; $('#f-sun').value='0'; $('#f-diff').value='0';
+  buildChips(); render();
+}
+
+function buildChips(){
+  const c = $('#chips');
+  c.innerHTML = TAGS.map(t=>'<button class="chip" type="button" data-tag="'+t+'" aria-pressed="'+state.tags.has(t)+'">'+t+'</button>').join('')+
+    '<button class="chip" type="button" data-kr aria-pressed="'+state.kr+'">우리 허브</button>'+
+    '<button class="chip fav" type="button" data-fav aria-pressed="'+state.fav+'">★ 내 허브 '+favs.size+'</button>';
+}
+
+function toggleFav(id){
+  favs.has(id) ? favs.delete(id) : favs.add(id);
+  store.set('herb-favs', [...favs]);
+  buildChips();
+  if (state.fav) render();
+  else document.querySelectorAll('[data-star="'+id+'"]').forEach(b=>{ b.setAttribute('aria-pressed', favs.has(id)); b.style.setProperty('--fo', favs.has(id)?1:0); b.setAttribute('aria-label','내 허브에 '+(favs.has(id)?'담김':'담기')); });
+  const d = $('#d-fav'); if (d && d.dataset.id===id){ d.setAttribute('aria-pressed', favs.has(id)); d.style.setProperty('--fo', favs.has(id)?1:0); }
+  updateLedger();
+}
+
+/* ── this month ── */
+const NOW_M = new Date().getMonth()+1;
+function season(){
+  $('#season-h').textContent = NOW_M+'월의 허브';
+  const pick = k => HERBS.filter(h=>h[k].includes(NOW_M));
+  const row = (label, arr) => '<div class="row"><span class="k">'+label+'</span>'+(arr.length ? arr.map(h=>'<button class="linkchip" type="button" data-open="'+h.id+'">'+esc(h.ko)+'</button>').join('') : '<span class="none">이번 달은 없습니다</span>')+'</div>';
+  $('#season-rows').innerHTML = row('수확', pick('harv')) + row('꽃', pick('bloom')) + row('파종', pick('sow'));
+}
+function updateLedger(){
+  const fams = new Set(HERBS.map(h=>h.fam)).size;
+  $('#ledger').innerHTML = '수록 <b>'+HERBS.length+'</b>종<br>'+fams+'개 과(科)<br>내 허브 <b>'+favs.size+'</b>종';
+}
+
+/* ── detail ── */
+const dlg = $('#dlg');
+function gauge(n){ return '<span class="gauge" aria-hidden="true">'+[1,2,3].map(i=>'<i class="'+(i<=n?'on':'')+'"></i>').join('')+'</span>'; }
+function calRow(label, cls, arr){ return '<tr><th scope="row">'+label+'</th>'+MONTHS.map((m,i)=>'<td class="'+(arr.includes(i+1)?cls:'')+(i+1===NOW_M?' now':'')+'"><span></span></td>').join('')+'</tr>'; }
+
+function openHerb(id){
+  const h = HERBS.find(x=>x.id===id); if (!h) return;
+  const kin = HERBS.filter(x=>x.fam===h.fam && x.id!==h.id);
+  dlg.innerHTML =
+   '<div class="dlg">'+
+    '<div class="plate"><canvas id="d-cv"></canvas><div><div class="acc">표본 No. '+h.no+'</div><div class="acc">원산지 · '+esc(h.origin)+'</div><div class="acc">생활형 · '+esc(h.life)+'</div></div></div>'+
+    '<div class="body">'+
+     '<div class="titlebar"><div><h2 id="d-name">'+esc(h.ko)+'</h2><div class="sub"><span class="latin">'+esc(h.la)+'</span><span class="fam">'+esc(h.en)+' · '+esc(h.fam)+' '+esc(h.famLa)+'</span></div></div>'+
+      '<div class="btns"><button class="iconbtn" id="d-fav" type="button" data-id="'+h.id+'" aria-pressed="'+favs.has(h.id)+'" aria-label="내 허브에 담기" style="--fo:'+(favs.has(h.id)?1:0)+'">'+starSvg+'</button>'+
+      '<button class="iconbtn" id="d-close" type="button" aria-label="닫기"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div>'+
+     '<p class="lead">'+esc(h.desc)+'</p>'+
+     '<dl class="facts">'+
+      '<div><dt>향과 맛</dt><dd>'+esc(h.aroma)+'</dd></div>'+
+      '<div><dt>햇빛</dt><dd>'+gauge(h.sun)+SUN[h.sun]+'</dd></div>'+
+      '<div><dt>물주기</dt><dd>'+gauge(h.water)+WATER[h.water]+'</dd></div>'+
+      '<div><dt>난이도</dt><dd>'+gauge(h.diff)+DIFF[h.diff]+'</dd></div>'+
+      '<div><dt>번식</dt><dd>'+esc(h.prop)+'</dd></div>'+
+      '<div><dt>겨울나기</dt><dd>'+esc(h.winter)+'</dd></div>'+
+     '</dl>'+
+     '<div class="sect"><h3>이렇게 써요</h3><p>'+esc(h.use)+'</p></div>'+
+     '<div class="sect"><h3>잘 어울리는 재료</h3><div class="pairs">'+h.pair.map(p=>'<span>'+esc(p)+'</span>').join('')+'</div></div>'+
+     '<div class="sect"><h3>키우는 법</h3><p>'+esc(h.grow)+'</p></div>'+
+     '<div class="sect"><h3>열두 달 달력</h3><div class="cal"><table><thead><tr><th></th>'+MONTHS.map((m,i)=>'<th scope="col" class="'+(i+1===NOW_M?'now':'')+'">'+m+'월</th>').join('')+'</tr></thead><tbody>'+
+       (h.sow.length?calRow('파종','sow',h.sow):'')+calRow('수확','harv',h.harv)+(h.bloom.length?calRow('개화','bloom',h.bloom):'')+'</tbody></table></div></div>'+
+     (h.caution ? '<div class="sect caution"><h3>주의할 점</h3><p>'+esc(h.caution)+'</p></div>' : '')+
+     (kin.length ? '<div class="sect"><h3>같은 '+esc(h.fam)+' 허브</h3><div class="kin">'+kin.map(k=>'<button class="linkchip" type="button" data-open="'+k.id+'">'+esc(k.ko)+'</button>').join('')+'</div></div>' : '')+
+    '</div></div>';
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0; dlg.querySelector('.body').scrollTop = 0;
+  requestAnimationFrame(()=>drawPlant($('#d-cv'), h));
+  try { history.replaceState(null, '', '#'+h.id); } catch(e){}
+}
+dlg.addEventListener('click', e => {
+  if (e.target === dlg) return dlg.close();
+  if (e.target.closest('#d-close')) return dlg.close();
+  const fb = e.target.closest('#d-fav'); if (fb) return toggleFav(fb.dataset.id);
+  const o = e.target.closest('[data-open]'); if (o) openHerb(o.dataset.open);
+});
+dlg.addEventListener('close', () => { try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} });
+
+/* ── events ── */
+grid.addEventListener('click', e => {
+  const st = e.target.closest('[data-star]'); if (st){ e.stopPropagation(); return toggleFav(st.dataset.star); }
+  const c = e.target.closest('.sheet'); if (c) openHerb(c.dataset.id);
+});
+grid.addEventListener('keydown', e => { if ((e.key==='Enter'||e.key===' ') && e.target.classList.contains('sheet')){ e.preventDefault(); openHerb(e.target.dataset.id); } });
+$('#season-rows').addEventListener('click', e => { const o = e.target.closest('[data-open]'); if (o) openHerb(o.dataset.open); });
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tag){ state.tags.has(b.dataset.tag) ? state.tags.delete(b.dataset.tag) : state.tags.add(b.dataset.tag); }
+  else if (b.hasAttribute('data-kr')) state.kr = !state.kr;
+  else if (b.hasAttribute('data-fav')) state.fav = !state.fav;
+  buildChips(); render(); store.set('herb-view', {sort:state.sort});
+});
+$('#q').addEventListener('input', e => { state.q = e.target.value; render(); });
+$('#f-sun').addEventListener('change', e => { state.sun = +e.target.value; render(); });
+$('#f-diff').addEventListener('change', e => { state.diff = +e.target.value; render(); });
+$('#f-sort').addEventListener('change', e => { state.sort = e.target.value; store.set('herb-view', {sort:state.sort}); render(); });
+
+function redrawAll(){
+  grid.querySelectorAll('canvas[data-draw]').forEach(cv => drawPlant(cv, HERBS.find(h=>h.id===cv.dataset.draw)));
+  const d = $('#d-cv'); if (d && dlg.open) drawPlant(d, HERBS.find(h=>h.id===$('#d-fav').dataset.id));
+}
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll); } catch(e){}
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 150); });
+
+/* ── boot ── */
+const view = store.get('herb-view', {}); if (view.sort){ state.sort = view.sort; $('#f-sort').value = view.sort; }
+updateLedger(); season(); buildChips(); render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(redrawAll);
+const hash = location.hash.slice(1); if (hash && HERBS.some(h=>h.id===hash)) openHerb(hash);
+</script>
