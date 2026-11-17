@@ -1,0 +1,9 @@
+yt-dlp
+youtube-transcript-api
+google-generativeai
+edge-tts
+pillow
+pydantic>=2
+streamlit
+python-dotenv
+pytest
