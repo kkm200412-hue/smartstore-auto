@@ -4,7 +4,7 @@ import re, subprocess
 from pathlib import Path
 from PIL import ImageDraw
 import visuals
-from visuals.base import W, H, font, wrap, FG
+from visuals.base import W, H, font, wrap, T
 from schemas import Script
 
 PAD = 0.5  # seconds of silence after each scene
@@ -29,7 +29,7 @@ def _draw_caption(img, text: str) -> None:
     y0 = H - 70 - h
     d.rounded_rectangle([140, y0, W - 140, y0 + h], 20, fill=(0, 0, 0, 150))
     for i, ln in enumerate(lines):
-        d.text(((W - d.textlength(ln, font=font(50))) / 2, y0 + 15 + i * 64), ln, font=font(50), fill=FG)
+        d.text(((W - d.textlength(ln, font=font(50))) / 2, y0 + 15 + i * 64), ln, font=font(50), fill=T.fg)
 
 
 def _pad_audio(src: Path, dst: Path, dur: float) -> None:

@@ -38,17 +38,21 @@ def build_script(template: Template, topic: str, minutes: float | None = None, l
 
 
 def render_video(script: Script, out: Path, engine: str = "edge", voice: str | None = None, fps: int = 24,
-                 captions: bool = True, bgm: Path | None = None, on_progress=lambda f: None) -> Path:
+                 captions: bool = True, bgm: Path | None = None, palette: list[str] | None = None,
+                 on_progress=lambda f: None) -> Path:
+    from visuals.base import set_theme
+    set_theme(palette)  # None/unusable -> default theme
     work = out.parent / (out.stem + "_work")
     audio = tts.synthesize([s.narration for s in script.scenes], work / "audio", engine=engine, voice=voice)
     return cp.compose(script, audio, out, work, fps=fps, captions=captions, bgm=bgm, on_progress=on_progress)
 
 
-def run(urls: list[str], topic: str, out: Path, minutes: float | None = None, engine: str = "edge", log=print, visual: bool = False, **kw) -> Path:
+def run(urls: list[str], topic: str, out: Path, minutes: float | None = None, engine: str = "edge", log=print,
+        visual: bool = False, use_palette: bool = True, **kw) -> Path:
     template = build_template(urls, log, visual)
     log("[2/4] 대본 작성 중…")
     script = build_script(template, topic, minutes)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.with_suffix(".script.json").write_text(script.model_dump_json(indent=1), encoding="utf-8")
     log("[3/4] 음성·영상 렌더링 중…")
-    return render_video(script, out, engine=engine, **kw)
+    return render_video(script, out, engine=engine, palette=template.palette if use_palette else None, **kw)

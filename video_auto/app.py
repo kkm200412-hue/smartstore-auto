@@ -13,6 +13,7 @@ topic = c1.text_input("새 영상 주제", placeholder="예: 블랙홀은 왜 �
 minutes = c2.number_input("목표 길이(분, 0=원본과 동일)", 0.0, 30.0, 0.0, 0.5)
 engine = c3.selectbox("음성 엔진", ["edge", "silent"])
 visual = st.checkbox("영상 화면까지 분석 (느림·API 비용 증가)")
+use_palette = st.checkbox("원본 영상 색감(팔레트) 적용", value=True)
 
 if st.button("1) 구조 분석", type="primary", disabled=not urls_txt.strip()):
     with st.spinner("자막 수집·분석 중…"):
@@ -34,6 +35,7 @@ if "script" in st.session_state:
         script = Script.model_validate_json(edited_s)
         bar = st.progress(0.0)
         out = Path("out") / "video.mp4"
-        pipeline.render_video(script, out, engine=engine, on_progress=bar.progress)
+        pal = st.session_state.template.palette if use_palette else None
+        pipeline.render_video(script, out, engine=engine, palette=pal, on_progress=bar.progress)
         st.video(str(out))
         st.download_button("MP4 다운로드", out.read_bytes(), "video.mp4", "video/mp4")

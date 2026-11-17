@@ -75,3 +75,23 @@ def test_add_visual_with_fake_llm():
     out = analyze.add_visual(t, "x.mp4", caller=lambda p: json.dumps(fake))
     assert out.visual_types == ["counter", "diagram"] and out.palette == ["#0b1226"]
     assert t.scene_visuals == []  # original untouched
+
+
+def test_set_theme_contrast_and_fallback():
+    from visuals import base
+    assert base.set_theme(["#102a43", "#f0b429", "#e0fcff", "#ff6b6b"])
+    assert base.T.bg_top == (16, 42, 67)
+    assert base.contrast(base.T.fg, base.T.bg_bottom) >= 4.5
+    assert base.contrast(base.T.accent, base.T.bg_bottom) >= 3
+    img = visuals_render_all()
+    assert img == (1920, 1080)
+    assert base.set_theme(["#fff", "oops"]) is False           # too few valid colours
+    assert base.T.bg_top == (11, 18, 38)                        # default restored
+    assert base.set_theme(["#ffffff", "#eeeeee", "#dddddd"]) is False  # no dark background
+
+
+def visuals_render_all():
+    import visuals
+    for s in FIXTURE_SCRIPT["scenes"]:
+        img = visuals.render(s["visual_type"], s["visual_spec"], 0.9)
+    return img.size

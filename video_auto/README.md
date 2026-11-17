@@ -23,6 +23,7 @@ python cli.py --url https://youtu.be/wd1RG5BIsqE --url https://youtu.be/kAtfE1rc
               --topic "블랙홀은 왜 빛을 삼킬까?" --minutes 5 -o out/video.mp4
 ```
 `--visual`(UI에서는 체크박스)을 주면 영상 자체를 내려받아(360p) Gemini가 직접 보고 화면 구성·색감·연출 리듬까지 분석합니다. 느리고 API 비용이 늘어납니다.
+분석된 팔레트는 새 영상의 배경·강조색에 자동 적용됩니다(대비가 부족하면 보정, 팔레트가 부적합하면 기본 테마). 끄려면 `--no-palette`.
 링크를 여러 개 주면 공통 흐름으로 병합됩니다. 분석 결과는 `work/<영상ID>/template.json`에 캐시됩니다.
 
 ## 구조
