@@ -14,6 +14,19 @@ class Section(BaseModel):
     technique: str = Field(description="how this section works, e.g. 'shocking number then question'")
 
 
+class SceneVisual(BaseModel):
+    start: float = Field(description="seconds from video start")
+    visual_type: VisualType
+    description: str = Field(description="abstract description of what is on screen, no copied text")
+
+
+class VisualProfile(BaseModel):
+    """What the benchmark video LOOKS like (from watching the video itself)."""
+    visual_notes: str = Field(description="overall look: palette, typography, motion, pacing of cuts")
+    palette: list[str] = Field(default_factory=list, description="dominant hex colours")
+    scene_visuals: list[SceneVisual]
+
+
 class Template(BaseModel):
     """Structure-only description of a benchmark video (no original wording)."""
     channel_style: str
@@ -25,6 +38,9 @@ class Template(BaseModel):
     transition_patterns: list[str]
     visual_types: list[VisualType]
     sections: list[Section]
+    visual_notes: str = ""
+    palette: list[str] = Field(default_factory=list)
+    scene_visuals: list[SceneVisual] = Field(default_factory=list)
 
 
 class Scene(BaseModel):

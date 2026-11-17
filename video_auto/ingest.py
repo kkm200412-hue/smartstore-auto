@@ -64,3 +64,18 @@ def condense(segments: list[dict], bucket: float = 10.0) -> str:
     if buf:
         out.append(f"[{int(cur_t)//60:02d}:{int(cur_t)%60:02d}] {' '.join(buf)}")
     return "\n".join(out)
+
+
+def download_video(video_id: str, outdir) -> "Path":
+    """Download a small (<=360p) copy for visual analysis. Cached."""
+    from pathlib import Path
+    import yt_dlp
+    outdir = Path(outdir); outdir.mkdir(parents=True, exist_ok=True)
+    target = outdir / f"{video_id}.mp4"
+    if target.exists():
+        return target
+    opts = {"quiet": True, "outtmpl": str(target), "merge_output_format": "mp4",
+            "format": "bv*[height<=360][ext=mp4]+ba[ext=m4a]/b[height<=360]/worst"}
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+    return target

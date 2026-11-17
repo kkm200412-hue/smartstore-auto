@@ -12,10 +12,11 @@ c1, c2, c3 = st.columns(3)
 topic = c1.text_input("새 영상 주제", placeholder="예: 블랙홀은 왜 빛을 삼킬까?")
 minutes = c2.number_input("목표 길이(분, 0=원본과 동일)", 0.0, 30.0, 0.0, 0.5)
 engine = c3.selectbox("음성 엔진", ["edge", "silent"])
+visual = st.checkbox("영상 화면까지 분석 (느림·API 비용 증가)")
 
 if st.button("1) 구조 분석", type="primary", disabled=not urls_txt.strip()):
     with st.spinner("자막 수집·분석 중…"):
-        st.session_state.template = pipeline.build_template([u for u in urls_txt.splitlines() if u.strip()], log=st.write)
+        st.session_state.template = pipeline.build_template([u for u in urls_txt.splitlines() if u.strip()], log=st.write, visual=visual)
         st.session_state.pop("script", None)
 
 if "template" in st.session_state:

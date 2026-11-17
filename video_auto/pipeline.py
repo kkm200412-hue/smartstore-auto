@@ -17,14 +17,19 @@ def _cached(path: Path, model, producer):
     return obj
 
 
-def build_template(urls: list[str], log=print) -> Template:
+def build_template(urls: list[str], log=print, visual: bool = False) -> Template:
     templates = []
     for url in urls:
         vid = ingest.parse_video_id(url)
         def produce(url=url):
             log(f"[1/2] {vid}: 자막 수집 및 구조 분석 중…")
             return an.analyze(ingest.fetch_video(url))
-        templates.append(_cached(WORK / vid / "template.json", Template, produce))
+        tpl = _cached(WORK / vid / "template.json", Template, produce)
+        if visual and not tpl.scene_visuals:
+            log(f"[visual] {vid}: 영상 다운로드 및 Gemini 시각 분석 중…")
+            tpl = an.add_visual(tpl, ingest.download_video(vid, WORK / vid))
+            (WORK / vid / "template.json").write_text(tpl.model_dump_json(indent=1), encoding="utf-8")
+        templates.append(tpl)
     return an.merge(templates)
 
 
@@ -39,8 +44,8 @@ def render_video(script: Script, out: Path, engine: str = "edge", voice: str | N
     return cp.compose(script, audio, out, work, fps=fps, captions=captions, bgm=bgm, on_progress=on_progress)
 
 
-def run(urls: list[str], topic: str, out: Path, minutes: float | None = None, engine: str = "edge", log=print, **kw) -> Path:
-    template = build_template(urls, log)
+def run(urls: list[str], topic: str, out: Path, minutes: float | None = None, engine: str = "edge", log=print, visual: bool = False, **kw) -> Path:
+    template = build_template(urls, log, visual)
     log("[2/4] 대본 작성 중…")
     script = build_script(template, topic, minutes)
     out.parent.mkdir(parents=True, exist_ok=True)

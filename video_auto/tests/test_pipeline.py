@@ -65,3 +65,13 @@ def test_bad_spec_degrades_to_title():
     import visuals
     img = visuals.render("chart", {"bars": [{"label": "x", "value": "oops"}]}, 0.5)
     assert img.size == (1920, 1080)
+
+
+def test_add_visual_with_fake_llm():
+    t = Template.model_validate(FIXTURE_TEMPLATE)
+    fake = {"visual_notes": "dark navy, slow fades", "palette": ["#0b1226"],
+            "scene_visuals": [{"start": 0, "visual_type": "counter", "description": "big number"},
+                              {"start": 8, "visual_type": "diagram", "description": "arrows between concepts"}]}
+    out = analyze.add_visual(t, "x.mp4", caller=lambda p: json.dumps(fake))
+    assert out.visual_types == ["counter", "diagram"] and out.palette == ["#0b1226"]
+    assert t.scene_visuals == []  # original untouched

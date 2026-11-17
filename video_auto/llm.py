@@ -49,3 +49,23 @@ def generate(prompt: str, schema: Type[T], retries: int = 3, caller=_call_gemini
             last = e
             time.sleep(2 ** attempt)
     raise RuntimeError(f"LLM failed after {retries} attempts: {last}")
+
+
+def make_video_caller(video_path):
+    """Caller that attaches a local video file (Gemini File API) to every prompt."""
+    def call(prompt: str) -> str:
+        _load_env()
+        import google.generativeai as genai
+        genai.configure(api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+        f = genai.upload_file(str(video_path))
+        try:
+            while f.state.name == "PROCESSING":
+                time.sleep(3); f = genai.get_file(f.name)
+            if f.state.name != "ACTIVE":
+                raise RuntimeError(f"Gemini could not process video: {f.state.name}")
+            model = genai.GenerativeModel(os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"))
+            return model.generate_content([f, prompt], generation_config={"response_mime_type": "application/json"}).text
+        finally:
+            try: genai.delete_file(f.name)
+            except Exception: pass
+    return call

@@ -16,4 +16,5 @@ Rules:
   - equation: {{"expr": str, "caption": str}}
   - counter: {{"label": str, "from": number, "to": number, "unit": str}}
   - timeline: {{"events": [{{"when": str, "what": str}}...<=5]}}
+- If the template has scene_visuals/visual_notes, mirror that visual rhythm (types and order of visuals per section); put palette hints in no spec.
 - Narration only contains spoken text (no stage directions).
